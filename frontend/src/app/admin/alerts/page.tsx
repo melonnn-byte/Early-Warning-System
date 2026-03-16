@@ -63,13 +63,36 @@ export default function AdminAlertsPage() {
   };
 
   return (
-    <main className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Peringatan (Broadcast Alert System)</h1>
-        <p className="text-sm text-slate-500">Sebarkan peringatan darurat melalui WhatsApp, Push Notification, dan Email secara terpusat.</p>
+    <main className="space-y-6">
+      <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
+        <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
+        <div className="relative z-10 space-y-1.5">
+          <h1 className="text-2xl font-bold tracking-tight">Peringatan (Broadcast Alert System)</h1>
+          <p className="max-w-2xl text-sm text-blue-50/95">Sebarkan peringatan darurat melalui WhatsApp, Push Notification, dan Email secara terpusat.</p>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Total Riwayat Broadcast</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{history.length}</p>
+          <p className="text-xs text-slate-500">Data pengiriman yang tercatat</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Level Saat Ini</p>
+          <p className={`mt-1 text-3xl font-bold ${level === "Bahaya" ? "text-rose-600" : level === "Waspada" ? "text-amber-600" : "text-emerald-600"}`}>
+            {level}
+          </p>
+          <p className="text-xs text-slate-500">Draft alert aktif</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Saluran Aktif</p>
+          <p className="mt-1 text-3xl font-bold text-cyan-700">{[channels.whatsapp, channels.push, channels.email].filter(Boolean).length}</p>
+          <p className="text-xs text-slate-500">WhatsApp, Push, Email</p>
+        </Card>
       </div>
 
-      <Card>
+      <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <h2 className="mb-3 text-base font-semibold text-slate-900">Panel Kirim Peringatan Manual</h2>
         <form onSubmit={sendAlert} className="space-y-4">
           <label className="block text-sm text-slate-700">
@@ -141,7 +164,7 @@ export default function AdminAlertsPage() {
         </form>
       </Card>
 
-      <Card>
+      <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <h2 className="mb-3 text-base font-semibold text-slate-900">Tabel Riwayat Peringatan</h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-180 text-left text-sm">

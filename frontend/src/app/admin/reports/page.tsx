@@ -67,13 +67,34 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <main className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Laporan (Data Logs & Reporting)</h1>
-        <p className="text-sm text-slate-500">Analisis historis untuk pelaporan bulanan ke pemerintah daerah dan instansi terkait.</p>
+    <main className="space-y-6">
+      <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
+        <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
+        <div className="relative z-10 space-y-1.5">
+          <h1 className="text-2xl font-bold tracking-tight">Laporan (Data Logs & Reporting)</h1>
+          <p className="max-w-2xl text-sm text-blue-50/95">Analisis historis untuk pelaporan bulanan ke pemerintah daerah dan instansi terkait.</p>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Total Data Terfilter</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{filteredData.length}</p>
+          <p className="text-xs text-slate-500">Baris data siap diekspor</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Rentang Tanggal</p>
+          <p className="mt-1 text-xl font-bold text-blue-600">{appliedFilter.fromDate || "-"}</p>
+          <p className="text-xs text-slate-500">s.d. {appliedFilter.toDate || "-"}</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Filter Sensor</p>
+          <p className="mt-1 text-xl font-bold text-cyan-700">{appliedFilter.sensorId === "all" ? "Semua Sensor" : appliedFilter.sensorId}</p>
+          <p className="text-xs text-slate-500">Sensor yang ditampilkan</p>
+        </Card>
       </div>
 
-      <Card>
+      <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <h2 className="mb-3 text-base font-semibold text-slate-900">Filter Pencarian</h2>
         <div className="grid gap-3 md:grid-cols-4">
           <label className="text-sm text-slate-700">
@@ -121,15 +142,15 @@ export default function AdminReportsPage() {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
           <WaterLevelChart points={filteredData} />
         </Card>
-        <Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
           <RainfallChart points={filteredData} />
         </Card>
       </div>
 
-      <Card className="overflow-x-auto">
+      <Card className="overflow-x-auto border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">Tabel Data Mentah</h2>
           <div className="flex gap-2">

@@ -74,18 +74,48 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <main className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Manajemen Pengguna</h1>
-          <p className="text-sm text-slate-500">Kelola akses petugas dengan role-based access control (RBAC).</p>
+    <main className="space-y-6">
+      <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
+        <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-bold tracking-tight">Manajemen Pengguna</h1>
+            <p className="max-w-2xl text-sm text-blue-50/95">Kelola akses petugas dengan role-based access control (RBAC).</p>
+          </div>
+          <Button onClick={openCreate} className="bg-white text-blue-700 hover:bg-blue-50">
+            Tambah User
+          </Button>
         </div>
-        <Button onClick={openCreate}>Tambah User</Button>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Total Pengguna</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{users.length}</p>
+          <p className="text-xs text-slate-500">Akun terdaftar dalam sistem</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Role Admin</p>
+          <p className="mt-1 text-3xl font-bold text-blue-600">{users.filter((user) => user.role === "admin").length}</p>
+          <p className="text-xs text-slate-500">Akses penuh sistem</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Role Operator</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600">{users.filter((user) => user.role === "operator").length}</p>
+          <p className="text-xs text-slate-500">Monitoring operasional lapangan</p>
+        </Card>
       </div>
 
       {savedMessage && <p className="text-sm font-medium text-emerald-600">{savedMessage}</p>}
 
-      <Card className="overflow-x-auto">
+      <Card className="overflow-x-auto border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Daftar Pengguna</h2>
+            <p className="text-sm text-slate-500">Kelola role dan informasi akun petugas.</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Total {users.length} User</span>
+        </div>
         <table className="w-full min-w-180 text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">

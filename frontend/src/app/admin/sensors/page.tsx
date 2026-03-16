@@ -42,6 +42,12 @@ export default function AdminSensorsPage() {
 
   const modalTitle = editingId ? "Edit Sensor" : "Tambah Sensor";
 
+  const onlineCount = sensors.filter((sensor) => sensor.connectivity === "online").length;
+  const offlineCount = sensors.length - onlineCount;
+  const alertCount = sensors.filter((sensor) => sensor.status === "alert").length;
+  const dangerCount = sensors.filter((sensor) => sensor.status === "danger").length;
+  const avgBattery = Math.round(sensors.reduce((sum, sensor) => sum + sensor.batteryPercent, 0) / Math.max(sensors.length, 1));
+
   const mapPreviewUrl = useMemo(
     () => `https://maps.google.com/maps?q=${form.latitude},${form.longitude}&z=14&output=embed`,
     [form.latitude, form.longitude],
@@ -105,18 +111,53 @@ export default function AdminSensorsPage() {
   };
 
   return (
-    <main className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Manajemen Sensor IoT</h1>
-          <p className="text-sm text-slate-500">Pantau kesehatan perangkat ultrasonik & rain gauge secara real-time.</p>
+    <main className="space-y-6">
+      <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
+        <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
+        <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-bold tracking-tight">Manajemen Sensor IoT</h1>
+            <p className="max-w-2xl text-sm text-blue-50/95">Pantau kesehatan perangkat ultrasonik & rain gauge secara real-time.</p>
+          </div>
+          <Button onClick={openCreate} className="bg-white text-blue-700 hover:bg-blue-50">
+            Tambah Sensor
+          </Button>
         </div>
-        <Button onClick={openCreate}>Tambah Sensor</Button>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Total Sensor</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{sensors.length}</p>
+          <p className="text-xs text-slate-500">Perangkat terdaftar</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Koneksi</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600">{onlineCount}</p>
+          <p className="text-xs text-slate-500">Online · {offlineCount} offline</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Status Risiko</p>
+          <p className="mt-1 text-3xl font-bold text-amber-600">{alertCount}</p>
+          <p className="text-xs text-slate-500">Waspada · {dangerCount} bahaya</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Rata-rata Baterai</p>
+          <p className="mt-1 text-3xl font-bold text-cyan-700">{avgBattery}%</p>
+          <p className="text-xs text-slate-500">Kesehatan daya perangkat</p>
+        </Card>
       </div>
 
       {savedMessage && <p className="text-sm font-medium text-emerald-600">{savedMessage}</p>}
 
-      <Card className="overflow-x-auto">
+      <Card className="overflow-x-auto border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Daftar Sensor</h2>
+            <p className="text-sm text-slate-500">Monitoring status dan konfigurasi tiap titik sensor.</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Total {sensors.length} Sensor</span>
+        </div>
         <table className="w-full min-w-220 text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">

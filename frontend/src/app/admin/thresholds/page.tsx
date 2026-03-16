@@ -87,13 +87,38 @@ export default function AdminThresholdsPage() {
   };
 
   return (
-    <main className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Ambang Batas (Threshold Settings)</h1>
-        <p className="text-sm text-slate-500">Atur level ketinggian air dan curah hujan per sensor untuk logika notifikasi otomatis.</p>
+    <main className="space-y-6">
+      <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
+        <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
+        <div className="relative z-10 space-y-1.5">
+          <h1 className="text-2xl font-bold tracking-tight">Ambang Batas (Threshold Settings)</h1>
+          <p className="max-w-2xl text-sm text-blue-50/95">Atur level ketinggian air dan curah hujan per sensor untuk logika notifikasi otomatis.</p>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Sensor Terkonfigurasi</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{configs.length}</p>
+          <p className="text-xs text-slate-500">Sudah memiliki rule threshold</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Auto Broadcast Aktif</p>
+          <p className="mt-1 text-3xl font-bold text-blue-600">{configs.filter((item) => item.autoBroadcast).length}</p>
+          <p className="text-xs text-slate-500">Sensor siap kirim peringatan otomatis</p>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <p className="text-sm text-slate-500">Sensor Dipilih</p>
+          <p className="mt-1 truncate text-xl font-bold text-cyan-700">{selectedSensorId}</p>
+          <p className="text-xs text-slate-500">Konfigurasi sedang diedit</p>
+        </Card>
       </div>
 
-      <Card>
+      <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Form Pengaturan Ambang Batas</h2>
+          <p className="text-sm text-slate-500">Pastikan konfigurasi level air dan hujan sesuai kondisi lapangan tiap sensor.</p>
+        </div>
         <form onSubmit={onSubmit} className="space-y-5">
           <label className="block text-sm text-slate-700">
             Pilih Sensor
