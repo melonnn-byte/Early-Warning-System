@@ -1,97 +1,118 @@
+import { AdminGoogleSensorMap } from "@/components/maps/AdminGoogleSensorMap";
 import { Card } from "@/components/ui/Card";
-import { StatusIndicator } from "@/components/ui/StatusIndicator";
-import { mockAlertHistory, mockSensors } from "@/constants";
+import { formatTimestamp } from "@/lib/utils";
+import { mockActivityLogs, mockSensors, mockWaterLevelHistory } from "@/constants";
 
 export default function AdminDashboardPage() {
   const online = mockSensors.filter((sensor) => sensor.connectivity === "online").length;
   const offline = mockSensors.length - online;
-  const dangerCount = mockSensors.filter((sensor) => sensor.status === "danger").length;
-  const alertCount = mockSensors.filter((sensor) => sensor.status === "alert").length;
+  const globalStatus = mockSensors.some((sensor) => sensor.status === "danger")
+    ? "Bahaya"
+    : mockSensors.some((sensor) => sensor.status === "alert")
+      ? "Waspada"
+      : "Aman";
+
+  const avgRainfall =
+    Math.round(
+      (mockWaterLevelHistory.slice(-12).reduce((sum, point) => sum + point.rainfallMm, 0) /
+        Math.max(mockWaterLevelHistory.slice(-12).length, 1)) *
+        10,
+    ) / 10;
+
+  const severityClass: Record<"info" | "warning" | "critical", string> = {
+    info: "bg-blue-100 text-blue-700",
+    warning: "bg-amber-100 text-amber-700",
+    critical: "bg-rose-100 text-rose-700",
+  };
+
+  const severityLabel: Record<"info" | "warning" | "critical", string> = {
+    info: "Info",
+    warning: "Warning",
+    critical: "Critical",
+  };
 
   return (
     <main className="space-y-6">
-      <section className="overflow-hidden rounded-2xl bg-linear-to-r from-blue-600 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-900/20">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-100">Early Warning System</p>
-        <h1 className="mt-2 text-3xl font-bold leading-tight">Admin Overview Dashboard</h1>
-        <p className="mt-2 max-w-3xl text-sm text-blue-100/95">
-          Pantau kondisi sensor, evaluasi level risiko, dan tindak lanjuti alert terbaru dalam satu halaman yang lebih
-          rapi dan cepat dibaca.
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-blue-50/95">
-          <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">{online} Sensor Online</span>
-          <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">{alertCount} Status Siaga</span>
-          <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">{dangerCount} Status Bahaya</span>
-        </div>
-      </section>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-emerald-100 bg-linear-to-br from-white to-emerald-50/60">
-          <p className="text-sm font-medium text-slate-500">Sensor Aktif</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-600">{online}</p>
-          <p className="mt-1 text-xs text-slate-500">Terhubung ke sistem monitoring</p>
-        </Card>
-
-        <Card className="border-rose-100 bg-linear-to-br from-white to-rose-50/60">
-          <p className="text-sm font-medium text-slate-500">Sensor Offline</p>
-          <p className="mt-2 text-3xl font-bold text-rose-600">{offline}</p>
-          <p className="mt-1 text-xs text-slate-500">Perlu pengecekan perangkat lapangan</p>
-        </Card>
-
-        <Card className="border-amber-100 bg-linear-to-br from-white to-amber-50/60">
-          <p className="text-sm font-medium text-slate-500">Status Siaga</p>
-          <p className="mt-2 text-3xl font-bold text-amber-600">{alertCount}</p>
-          <p className="mt-1 text-xs text-slate-500">Titik butuh pemantauan lebih ketat</p>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-blue-100 bg-linear-to-br from-white to-blue-50/70">
-          <p className="text-sm font-medium text-slate-500">Alert Terbaru</p>
-          <p className="mt-2 text-sm font-semibold text-slate-800">{mockAlertHistory[0]?.title}</p>
-          <p className="mt-1 text-xs text-slate-500">Pastikan pesan diteruskan ke pihak terkait</p>
+          <p className="text-sm font-medium text-slate-500">Status Global</p>
+          <p
+            className={`mt-2 text-3xl font-bold ${
+              globalStatus === "Bahaya"
+                ? "text-rose-600"
+                : globalStatus === "Waspada"
+                  ? "text-amber-600"
+                  : "text-emerald-600"
+            }`}
+          >
+            {globalStatus}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Berdasarkan pembacaan seluruh sensor aktif</p>
+        </Card>
+
+        <Card className="border-slate-200 bg-white">
+          <p className="text-sm font-medium text-slate-500">Total Sensor</p>
+          <p className="mt-2 text-3xl font-bold text-slate-800">
+            {online} Aktif <span className="text-base font-medium text-slate-500">| {offline} Offline</span>
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Pemantauan kesehatan perangkat IoT real-time</p>
+        </Card>
+
+        <Card className="border-cyan-100 bg-linear-to-br from-white to-cyan-50/70">
+          <p className="text-sm font-medium text-slate-500">Rata-rata Curah Hujan</p>
+          <p className="mt-2 text-3xl font-bold text-cyan-700">{avgRainfall} mm/jam</p>
+          <p className="mt-1 text-xs text-slate-500">Ringkasan dari pembacaan terbaru seluruh titik</p>
         </Card>
       </div>
 
       <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Status Titik Pemantauan</h2>
-            <p className="text-sm text-slate-500">Ringkasan kondisi tiap sensor dan parameter utama.</p>
+            <h2 className="text-lg font-semibold text-slate-900">Peta Interaktif Sensor</h2>
+            <p className="text-sm text-slate-500">Klik titik sensor untuk melihat lokasi, ketinggian air, dan status baterai.</p>
           </div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
             Total {mockSensors.length} Sensor
           </span>
         </div>
 
-        <div className="space-y-2.5">
-          {mockSensors.map((sensor) => (
-            <div
-              key={sensor.id}
-              className="grid gap-3 rounded-xl border border-slate-200/90 bg-slate-50/70 p-4 md:grid-cols-[1.2fr_1fr_auto] md:items-center"
-            >
-              <div>
-                <p className="text-sm font-semibold text-slate-800">{sensor.name}</p>
-                <p className="text-xs text-slate-500">{sensor.riverName}</p>
-              </div>
+        <AdminGoogleSensorMap sensors={mockSensors} />
+      </Card>
 
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-white px-2.5 py-1 font-medium text-slate-600">
-                  Level: {sensor.lastLevelCm} cm
-                </span>
-                <span className="rounded-full bg-white px-2.5 py-1 font-medium text-slate-600">
-                  Baterai: {sensor.batteryPercent}%
-                </span>
-                <span
-                  className={`rounded-full px-2.5 py-1 font-medium ${
-                    sensor.connectivity === "online" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                  }`}
-                >
-                  {sensor.connectivity === "online" ? "Online" : "Offline"}
-                </span>
-              </div>
+      <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Log Aktivitas Terkini</h2>
+            <p className="text-sm text-slate-500">Pemantauan kejadian terbaru untuk respons cepat.</p>
+          </div>
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+            Update: {formatTimestamp(new Date().toISOString())}
+          </span>
+        </div>
 
-              <StatusIndicator status={sensor.status} />
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-160 text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500">
+                <th className="py-2">Waktu (HH:MM)</th>
+                <th className="py-2">Kejadian</th>
+                <th className="py-2">Tingkat Keparahan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockActivityLogs.map((item) => (
+                <tr key={item.id} className="border-b border-slate-100 align-top">
+                  <td className="py-3 font-medium text-slate-700">{item.time}</td>
+                  <td className="py-3 text-slate-700">{item.event}</td>
+                  <td className="py-3">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${severityClass[item.severity]}`}>
+                      {severityLabel[item.severity]}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Card>
     </main>
