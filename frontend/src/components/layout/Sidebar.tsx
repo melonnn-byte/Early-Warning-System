@@ -106,45 +106,30 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         collapsed ? "w-24" : "w-71 xl:w-74",
       )}
     >
-      <div className="relative flex h-full flex-col px-3 py-4.5">
+      <div className="relative flex h-full flex-col px-3 py-4">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_5%,rgba(255,255,255,0.16),transparent_40%),radial-gradient(circle_at_90%_100%,rgba(125,211,252,0.18),transparent_36%)]" />
 
-        <div className="relative z-10 mb-4">
+        <div className="relative z-10 mb-4 border-b border-white/15 pb-4">
           {!collapsed ? (
-            <>
-              <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2.5 pr-11 shadow-sm shadow-blue-950/20 backdrop-blur-sm">
-                <p className="whitespace-nowrap text-[0.58rem] font-semibold uppercase tracking-[0.2em] text-blue-100/85">Pemantauan Darurat</p>
-                <h2 className="mt-0.5 whitespace-nowrap text-[1.55rem] font-semibold leading-[1.05] tracking-tight">EWS Flood Guard</h2>
-                <p className="mt-0.5 whitespace-nowrap text-[0.85rem] font-normal text-blue-100/90">Dasbor Admin</p>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-3 py-3 shadow-sm shadow-blue-950/20 backdrop-blur-sm">
+              <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/18">
+                <FlowIcon className="h-5 w-5 text-cyan-200" />
               </div>
-
-              <button
-                type="button"
-                onClick={onToggle}
-                className="absolute right-1 top-1 inline-flex h-8.5 w-8.5 items-center justify-center rounded-xl border border-white/30 bg-white/10 text-white shadow-sm shadow-blue-950/25 transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                aria-label="Tutup sidebar"
-                title="Tutup sidebar"
-              >
-                <CollapseIcon collapsed={false} className="h-4 w-4" />
-              </button>
-            </>
+              <div className="min-w-0">
+                <p className="truncate text-[0.72rem] font-medium uppercase tracking-[0.14em] text-blue-100/85">Early Warning</p>
+                <h2 className="truncate text-[1.35rem] font-semibold leading-tight">Flood Guard</h2>
+                <p className="truncate text-xs text-blue-100/90">Dashboard Admin</p>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2.5">
               <div className="rounded-xl border border-white/25 bg-white/10 px-2.5 py-2 text-sm font-semibold leading-none">EWS</div>
-              <button
-                type="button"
-                onClick={onToggle}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/10 text-white shadow-sm shadow-blue-950/25 transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                aria-label="Buka sidebar"
-                title="Buka sidebar"
-              >
-                <CollapseIcon collapsed className="h-4 w-4" />
-              </button>
+              <FlowIcon className="h-4 w-4 text-cyan-200" />
             </div>
           )}
         </div>
 
-        <div className="relative z-10 mb-2.5 px-2">
+        <div className="relative z-10 mb-3 px-2">
           {!collapsed ? (
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-[0.18em] text-blue-100/80">Menu Admin</span>
@@ -155,7 +140,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
         </div>
 
-        <ul className={cn("relative z-10", collapsed ? "space-y-3" : "space-y-1.5")}>
+        <ul className={cn("relative z-10", collapsed ? "space-y-2.5" : "space-y-1.5")}>
           {adminNavLinks.map((item) => (
             <li key={item.href}>
               {(() => {
@@ -171,7 +156,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       "group relative flex items-center gap-3 overflow-hidden rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium tracking-normal transition-all",
                       "hover:border-white/20 hover:bg-white/16",
                       collapsed && "mx-auto h-11 w-11 justify-center rounded-2xl px-0 py-0",
-                      isActive && "border-white/25 bg-white/18 shadow-inner shadow-white/10",
+                      isActive && "border-white/25 bg-white/20 shadow-inner shadow-white/10",
                     )}
                   >
                     <span
@@ -193,7 +178,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     {!collapsed && (
                       <span
                         className={cn(
-                          "ml-auto h-1.5 w-1.5 rounded-full bg-white/25 transition-colors",
+                          "ml-auto h-1.5 w-1.5 rounded-full bg-white/30 transition-colors",
                           isActive && "bg-cyan-200",
                         )}
                       />
@@ -215,11 +200,35 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <p className="mt-1.5 text-[11px] text-blue-100/80">Status sistem dipantau 24/7 untuk respons cepat.</p>
             </div>
           ) : (
-            <div className="mx-auto mt-1 flex h-8.5 w-8.5 items-center justify-center rounded-xl border border-white/20 bg-white/10">
-              <FlowIcon className="h-4 w-4 text-cyan-200" />
+            <div className="mx-auto mt-1 flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onToggle}
+                className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-xl border border-white/30 bg-white/10 text-white shadow-sm shadow-blue-950/25 transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                aria-label="Buka sidebar"
+                title="Buka sidebar"
+              >
+                <CollapseIcon collapsed className="h-4 w-4" />
+              </button>
+              <div className="flex h-8.5 w-8.5 items-center justify-center rounded-xl border border-white/20 bg-white/10">
+                <FlowIcon className="h-4 w-4 text-cyan-200" />
+              </div>
             </div>
           )}
         </div>
+
+        {!collapsed && (
+          <div className="relative z-10 mt-3 px-2">
+            <button
+              type="button"
+              onClick={onToggle}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-3 py-2 text-xs font-semibold text-blue-50 transition-all hover:bg-white/18"
+            >
+              <CollapseIcon collapsed={false} className="h-3.5 w-3.5" />
+              <span>Ciutkan Sidebar</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );
