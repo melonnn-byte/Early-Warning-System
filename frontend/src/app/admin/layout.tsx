@@ -19,17 +19,31 @@ export default function AdminLayout({ children }: PropsWithChildren) {
     return <main className="mx-auto w-full max-w-2xl px-6 py-10 text-sm text-slate-600">Memuat sesi admin...</main>;
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || user?.role !== "admin") {
     return (
       <main className="mx-auto w-full max-w-2xl px-6 py-10">
         <h1 className="text-2xl font-bold text-slate-900">Akses Admin Diperlukan</h1>
-        <p className="mt-2 text-sm text-slate-600">Silakan login untuk mengakses dashboard admin.</p>
-        <Link
-          href="/admin/login"
-          className="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-        >
-          Ke Halaman Login
-        </Link>
+        <p className="mt-2 text-sm text-slate-600">
+          {isAuthenticated
+            ? "Akun ini bukan admin. Gunakan akun admin atau lanjut ke dashboard user."
+            : "Silakan login untuk mengakses dashboard admin."}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/login"
+            className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Ke Halaman Login Admin
+          </Link>
+          {isAuthenticated && (
+            <Link
+              href="/user/dashboard"
+              className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Ke Dashboard User
+            </Link>
+          )}
+        </div>
       </main>
     );
   }

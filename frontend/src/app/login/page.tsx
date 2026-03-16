@@ -6,10 +6,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
+import type { UserRole } from "@/types/user";
+
+const getRedirectPathByRole = (role: UserRole) => (role === "admin" ? "/admin/dashboard" : "/user/dashboard");
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, dummyAccounts } = useAuth();
+  const adminAccount = dummyAccounts.find((account) => account.role === "admin");
+  const userAccount = dummyAccounts.find((account) => account.role === "operator") ?? dummyAccounts[0];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,7 +41,7 @@ export default function LoginPage() {
 
     setSuccess("Login berhasil. Mengalihkan ke dashboard...");
     setTimeout(() => {
-      router.push("/dashboard");
+      router.push(getRedirectPathByRole(result.user.role));
     }, 700);
   };
 
@@ -53,8 +58,30 @@ export default function LoginPage() {
 
     setSuccess("Login Google (demo) berhasil. Mengalihkan ke dashboard...");
     setTimeout(() => {
-      router.push("/dashboard");
+      router.push(getRedirectPathByRole(result.user.role));
     }, 600);
+  };
+
+  const onQuickLogin = (role: UserRole) => {
+    const account = role === "admin" ? adminAccount : userAccount;
+    if (!account) {
+      setError(`Akun ${role} tidak tersedia.`);
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+
+    const result = login(account.email, account.password);
+    if (!result.ok) {
+      setError(`Login cepat ${role} gagal. Coba lagi.`);
+      return;
+    }
+
+    setSuccess(`Login cepat ${role} berhasil. Mengalihkan...`);
+    setTimeout(() => {
+      router.push(getRedirectPathByRole(result.user.role));
+    }, 450);
   };
 
   return (
@@ -86,6 +113,23 @@ export default function LoginPage() {
         <Card className="border-blue-100 bg-white/95 p-6 shadow-xl md:p-7">
           <h2 className="text-2xl font-bold text-slate-900">Login</h2>
           <p className="mt-2 text-sm text-slate-600">Masuk ke akun kamu untuk mengakses layanan EWS.</p>
+
+          <div className="mt-5 flex justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => onQuickLogin("admin")}
+                className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+              >
+                Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => onQuickLogin("operator")}
+                className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+              >
+                User
+              </button>
+          </div>
 
           <button
             type="button"
