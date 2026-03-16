@@ -30,12 +30,12 @@ export const landingNavLinks = [
 ];
 
 export const adminNavLinks = [
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/sensors", label: "Sensors" },
-  { href: "/admin/thresholds", label: "Thresholds" },
-  { href: "/admin/alerts", label: "Alerts" },
-  { href: "/admin/reports", label: "Reports" },
-  { href: "/admin/users", label: "Users" },
+  { href: "/admin/dashboard", label: "Dasbor" },
+  { href: "/admin/sensors", label: "Sensor" },
+  { href: "/admin/thresholds", label: "Ambang Batas" },
+  { href: "/admin/alerts", label: "Peringatan" },
+  { href: "/admin/reports", label: "Laporan" },
+  { href: "/admin/users", label: "Pengguna" },
 ];
 
 export const emergencyContacts = [

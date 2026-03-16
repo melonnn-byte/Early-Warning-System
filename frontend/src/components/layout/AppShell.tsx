@@ -9,7 +9,8 @@ const noChromeRoutes = new Set(["/login", "/register", "/admin/login"]);
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
-  const isNoChromeRoute = noChromeRoutes.has(pathname);
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isNoChromeRoute = noChromeRoutes.has(pathname) || isAdminRoute;
 
   if (isNoChromeRoute) {
     return <>{children}</>;
