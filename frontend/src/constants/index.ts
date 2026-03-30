@@ -35,6 +35,7 @@ export const adminNavLinks = [
   { href: "/admin/sensors", label: "Sensor" },
   { href: "/admin/thresholds", label: "Ambang Batas" },
   { href: "/admin/alerts", label: "Peringatan" },
+  { href: "/admin/notifications", label: "Notifikasi" },
   { href: "/admin/reports", label: "Laporan" },
   { href: "/admin/users", label: "Pengguna" },
 ];
@@ -196,6 +197,121 @@ export const mockBroadcastHistory: BroadcastHistoryItem[] = [
     channels: ["Email"],
     sender: "Admin EWS",
     status: "Gagal",
+  },
+];
+
+export type NotificationConditionLevel = "Aman" | "Waspada" | "Siaga" | "Bahaya";
+
+export interface NotificationConditionItem {
+  id: string;
+  title: string;
+  level: NotificationConditionLevel;
+  description: string;
+  recommendation: string;
+  responseSla: string;
+  updatedAt: string;
+}
+
+export const mockNotificationConditions: NotificationConditionItem[] = [
+  {
+    id: "NFC-001",
+    title: "Kondisi Aman",
+    level: "Aman",
+    description: "Tinggi muka air stabil di bawah ambang waspada, curah hujan rendah.",
+    recommendation: "Lanjutkan pemantauan rutin setiap 30 menit.",
+    responseSla: "Update tiap 30 menit",
+    updatedAt: "2026-03-16T07:00:00.000Z",
+  },
+  {
+    id: "NFC-002",
+    title: "Kondisi Waspada",
+    level: "Waspada",
+    description: "Terjadi tren kenaikan debit air di sensor tengah dan hilir.",
+    recommendation: "Siapkan tim lapangan dan aktifkan pesan kesiapsiagaan awal.",
+    responseSla: "Respons maksimum 15 menit",
+    updatedAt: "2026-03-16T07:10:00.000Z",
+  },
+  {
+    id: "NFC-003",
+    title: "Kondisi Siaga",
+    level: "Siaga",
+    description: "Batas siaga terlampaui pada lebih dari satu titik sensor.",
+    recommendation: "Buka posko, siapkan jalur evakuasi, dan kirim notifikasi area terdampak.",
+    responseSla: "Respons maksimum 10 menit",
+    updatedAt: "2026-03-16T07:18:00.000Z",
+  },
+  {
+    id: "NFC-004",
+    title: "Kondisi Bahaya",
+    level: "Bahaya",
+    description: "Permukaan air mencapai ambang kritis dengan risiko limpasan tinggi.",
+    recommendation: "Kirim instruksi evakuasi segera ke seluruh kanal komunikasi.",
+    responseSla: "Respons maksimum 5 menit",
+    updatedAt: "2026-03-16T07:22:00.000Z",
+  },
+];
+
+export interface NotificationInboxItem {
+  id: string;
+  subject: string;
+  message: string;
+  level: NotificationConditionLevel;
+  sender: string;
+  channel: "Push" | "WhatsApp" | "Email" | "SMS";
+  receivedAt: string;
+  isRead: boolean;
+}
+
+export const mockNotificationInbox: NotificationInboxItem[] = [
+  {
+    id: "INB-001",
+    subject: "Status Aman - Monitoring Rutin",
+    message: "Semua sensor melaporkan kondisi normal. Tidak ada anomali selama 2 jam terakhir.",
+    level: "Aman",
+    sender: "Sistem EWS",
+    channel: "Push",
+    receivedAt: "2026-03-16T06:50:00.000Z",
+    isRead: true,
+  },
+  {
+    id: "INB-002",
+    subject: "Waspada: Kenaikan Debit di Sektor Tengah",
+    message: "Debit air naik 18 cm dalam 20 menit. Mohon tingkatkan pemantauan area bantaran.",
+    level: "Waspada",
+    sender: "Operator Sensor Tengah",
+    channel: "WhatsApp",
+    receivedAt: "2026-03-16T07:05:00.000Z",
+    isRead: false,
+  },
+  {
+    id: "INB-003",
+    subject: "Siaga: Posko Diminta Bersiap",
+    message: "Prakiraan hujan lebat 2 jam ke depan. Tim diminta menyiapkan logistik dan jalur evakuasi.",
+    level: "Siaga",
+    sender: "BPBD Kota",
+    channel: "Email",
+    receivedAt: "2026-03-16T07:14:00.000Z",
+    isRead: false,
+  },
+  {
+    id: "INB-004",
+    subject: "Bahaya: Instruksi Evakuasi Segera",
+    message: "Area hilir berada pada status bahaya. Laksanakan evakuasi bertahap sesuai SOP.",
+    level: "Bahaya",
+    sender: "Komandan Posko",
+    channel: "SMS",
+    receivedAt: "2026-03-16T07:21:00.000Z",
+    isRead: false,
+  },
+  {
+    id: "INB-005",
+    subject: "Waspada Lanjutan: Curah Hujan Meningkat",
+    message: "Curah hujan terpantau 28 mm/jam. Warga rentan diminta siap siaga.",
+    level: "Waspada",
+    sender: "Sistem EWS",
+    channel: "Push",
+    receivedAt: "2026-03-16T07:25:00.000Z",
+    isRead: true,
   },
 ];
 

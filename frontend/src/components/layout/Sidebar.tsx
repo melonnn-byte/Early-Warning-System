@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import { adminNavLinks } from "@/constants";
 import { cn } from "@/lib/utils";
 
-type NavIconName = "dashboard" | "sensors" | "thresholds" | "alerts" | "reports" | "users";
+type NavIconName = "dashboard" | "sensors" | "thresholds" | "alerts" | "notifications" | "reports" | "users";
 
 const iconByPath: Record<string, NavIconName> = {
   "/admin/dashboard": "dashboard",
   "/admin/sensors": "sensors",
   "/admin/thresholds": "thresholds",
   "/admin/alerts": "alerts",
+  "/admin/notifications": "notifications",
   "/admin/reports": "reports",
   "/admin/users": "users",
 };
@@ -46,6 +47,14 @@ function NavIcon({ name, className }: { name: NavIconName; className?: string })
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className={className} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4a5 5 0 00-5 5v2.7c0 .8-.3 1.6-.8 2.2L5 15.5h14l-1.2-1.6a3.6 3.6 0 01-.8-2.2V9a5 5 0 00-5-5z" />
           <path strokeLinecap="round" d="M10 18a2 2 0 004 0" />
+        </svg>
+      );
+    case "notifications":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className={className} aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 7l7.5 5.4L19.5 7" />
+          <circle cx="18.2" cy="6.4" r="1.8" fill="currentColor" stroke="none" />
         </svg>
       );
     case "reports":
