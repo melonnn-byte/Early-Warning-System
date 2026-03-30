@@ -111,6 +111,16 @@ export default function LoginPage() {
         </section>
 
         <Card className="border-blue-100 bg-white/95 p-6 shadow-xl md:p-7">
+          <div className="mb-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              <span aria-hidden="true">←</span>
+              <span>Kembali ke Landing Page</span>
+            </Link>
+          </div>
+
           <h2 className="text-2xl font-bold text-slate-900">Login</h2>
           <p className="mt-2 text-sm text-slate-600">Masuk ke akun kamu untuk mengakses layanan EWS.</p>
 
@@ -118,6 +128,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => onQuickLogin("admin")}
+                suppressHydrationWarning
                 className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
               >
                 Admin
@@ -125,6 +136,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => onQuickLogin("operator")}
+                suppressHydrationWarning
                 className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
               >
                 User
@@ -134,6 +146,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={onGoogleLogin}
+            suppressHydrationWarning
             className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
@@ -158,6 +171,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                suppressHydrationWarning
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 placeholder="nama@email.com"
                 required
@@ -173,13 +187,14 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                suppressHydrationWarning
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 placeholder="••••••••"
                 required
               />
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting} suppressHydrationWarning>
               {isSubmitting ? "Memproses..." : "Masuk"}
             </Button>
 

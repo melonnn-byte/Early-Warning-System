@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 
-const noChromeRoutes = new Set(["/login", "/register", "/admin/login"]);
+const noChromeRoutes = new Set(["/login", "/register"]);
 
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();

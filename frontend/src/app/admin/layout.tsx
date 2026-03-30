@@ -3,18 +3,19 @@
 import { useState } from "react";
 import type { PropsWithChildren } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLayout({ children }: PropsWithChildren) {
-  const pathname = usePathname();
+  const router = useRouter();
   const { loading, isAuthenticated, logout, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
-  if (pathname === "/admin/login") {
-    return <main className="mx-auto w-full max-w-lg px-6 py-10">{children}</main>;
+  const handleLogout = () => {
+    logout();
+    router.replace("/login");
   }
 
   if (loading) {
@@ -32,10 +33,10 @@ export default function AdminLayout({ children }: PropsWithChildren) {
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
-            href="/admin/login"
+            href="/login"
             className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Ke Halaman Login Admin
+            Ke Halaman Login
           </Link>
           {isAuthenticated && (
             <Link
@@ -123,7 +124,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
               </div>
             </div>
 
-            <Button variant="secondary" onClick={logout} className="hidden xl:inline-flex">
+            <Button variant="secondary" onClick={handleLogout} className="hidden xl:inline-flex">
               Logout
             </Button>
           </div>
