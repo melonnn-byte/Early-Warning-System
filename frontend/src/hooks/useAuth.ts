@@ -48,6 +48,22 @@ export function useAuth() {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback((payload: Partial<Pick<AppUser, "name" | "email" | "whatsappNumber">>) => {
+    setUser((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextUser: AppUser = {
+        ...prev,
+        ...payload,
+      };
+
+      localStorage.setItem(AUTH_KEY, JSON.stringify(nextUser));
+      return nextUser;
+    });
+  }, []);
+
   return useMemo(
     () => ({
       user,
@@ -55,8 +71,9 @@ export function useAuth() {
       isAuthenticated: Boolean(user),
       login,
       logout,
+      updateProfile,
       dummyAccounts: dummyAuthAccounts,
     }),
-    [user, loading, login, logout],
+    [user, loading, login, logout, updateProfile],
   );
 }
