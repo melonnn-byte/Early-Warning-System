@@ -3,8 +3,8 @@ import type { WaterStatus } from "@/types/water-level";
 import { Badge } from "./Badge";
 
 const statusLabel: Record<WaterStatus, string> = {
-  safe: "Aman",
-  alert: "Siaga",
+  safe: "Normal",
+  alert: "Waspada",
   danger: "Bahaya",
 };
 
