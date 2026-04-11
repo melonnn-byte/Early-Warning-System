@@ -10,6 +10,7 @@ const noChromeRoutes = new Set(["/login", "/register"]);
 export function AppShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith("/admin");
+  const isUserRoute = pathname.startsWith("/user");
   const isNoChromeRoute = noChromeRoutes.has(pathname) || isAdminRoute;
 
   if (isNoChromeRoute) {
@@ -20,7 +21,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <div className="flex-1">{children}</div>
-      <Footer />
+      {!isUserRoute && <Footer />}
     </div>
   );
 }
