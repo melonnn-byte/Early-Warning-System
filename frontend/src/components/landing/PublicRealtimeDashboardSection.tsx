@@ -6,16 +6,10 @@ import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { WaterLevelChart } from "@/components/charts/WaterLevelChart";
 import { RainfallChart } from "@/components/charts/RainfallChart";
 import { FlowSpeedChart } from "@/components/charts/FlowSpeedChart";
-import { mockSensors } from "@/constants";
 import { useWaterLevel } from "@/hooks/useWaterLevel";
-import { formatTimestamp, getStatusFromLevel } from "@/lib/utils";
+import { formatTimestamp, getRainfallCategory } from "@/lib/utils";
+import type { Sensor } from "@/types/sensor";
 import type { WaterStatus } from "@/types/water-level";
-
-function getRainfallCategory(rainfallMm: number) {
-  if (rainfallMm < 5) return { label: "Ringan", detail: "< 5 mm/jam", color: "text-emerald-700 bg-emerald-100" };
-  if (rainfallMm <= 20) return { label: "Sedang", detail: "5–20 mm/jam", color: "text-amber-700 bg-amber-100" };
-  return { label: "Lebat", detail: "> 20 mm/jam", color: "text-rose-700 bg-rose-100" };
-}
 
 function getThermometerColor(status: WaterStatus) {
   if (status === "danger") return "bg-rose-500";
@@ -23,7 +17,7 @@ function getThermometerColor(status: WaterStatus) {
   return "bg-emerald-500";
 }
 
-const fallbackSensor = {
+const fallbackSensor: Sensor = {
   id: "SEN-01",
   name: "Sensor Utama",
   riverName: "Batang Arau",
@@ -37,31 +31,21 @@ const fallbackSensor = {
 };
 
 const sideIndicators = [
-  { label: "Hijau (Normal)", color: "bg-emerald-500", text: "Aman, aktivitas normal." },
-  { label: "Kuning (Waspada)", color: "bg-yellow-400", text: "Pantau perkembangan." },
-  { label: "Oren (Siaga)", color: "bg-orange-500", text: "Siap evakuasi dini." },
-  { label: "Merah (Bahaya)", color: "bg-rose-600", text: "Evakuasi segera." },
+  { label: "Hijau (Normal)", color: "bg-emerald-500", text: "Kondisi aman, lanjutkan pemantauan." },
+  { label: "Kuning (Waspada)", color: "bg-amber-500", text: "Siapkan kebutuhan darurat dan pantau update." },
+  { label: "Merah (Bahaya)", color: "bg-rose-600", text: "Lakukan evakuasi sesuai arahan petugas." },
 ];
 
 export function PublicRealtimeDashboardSection() {
-  const { latest, history } = useWaterLevel();
-  const [selectedSensorId, setSelectedSensorId] = useState(mockSensors[0]?.id ?? "SEN-01");
+  const [selectedSensorId, setSelectedSensorId] = useState("SEN-01");
+  const { latest, history, sensorsSnapshot } = useWaterLevel({ sensorId: selectedSensorId });
 
   const selectedSensor = useMemo(
-    () => mockSensors.find((sensor) => sensor.id === selectedSensorId) ?? mockSensors[0] ?? fallbackSensor,
-    [selectedSensorId],
+    () => sensorsSnapshot.find((sensor) => sensor.id === latest.sensorId) ?? sensorsSnapshot[0] ?? fallbackSensor,
+    [latest.sensorId, sensorsSnapshot],
   );
-
-  const sensorIndex = Math.max(
-    0,
-    mockSensors.findIndex((sensor) => sensor.id === selectedSensor?.id),
-  );
-
-  const adjustedLevel = Math.max(80, latest.levelCm + sensorIndex * 12 - 6);
-  const adjustedRainfall = Math.max(0, latest.rainfallMm + sensorIndex * 3 - 1);
-  const status = getStatusFromLevel(adjustedLevel);
-  const rainfallCategory = getRainfallCategory(adjustedRainfall);
-  const thermometerPercent = Math.min(100, Math.round((adjustedLevel / 250) * 100));
+  const rainfallCategory = getRainfallCategory(latest.rainfallMm);
+  const thermometerPercent = Math.min(100, Math.round((latest.levelCm / 250) * 100));
 
   return (
     <section id="realtime-dashboard" className="bg-white">
@@ -93,7 +77,7 @@ export function PublicRealtimeDashboardSection() {
             </div>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              {mockSensors.map((sensor) => (
+              {sensorsSnapshot.map((sensor) => (
                 <button
                   key={sensor.id}
                   type="button"
@@ -112,7 +96,7 @@ export function PublicRealtimeDashboardSection() {
 
             <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               Lokasi terpilih: <span className="font-semibold">{selectedSensor.name}</span> ({selectedSensor.latitude.toFixed(4)}, {" "}
-              {selectedSensor.longitude.toFixed(4)}) • Update: {formatTimestamp(latest.updatedAt)} •{" "}
+              {selectedSensor.longitude.toFixed(4)}) • Update: {formatTimestamp(selectedSensor.updatedAt)} •{" "}
               <a
                 href={`https://www.google.com/maps?q=${selectedSensor.latitude},${selectedSensor.longitude}&t=k`}
                 target="_blank"
@@ -127,25 +111,25 @@ export function PublicRealtimeDashboardSection() {
           <Card>
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-slate-900">Kondisi Live Sensor</h3>
-              <StatusIndicator status={status} />
+              <StatusIndicator status={latest.status} />
             </div>
 
             <div className="mt-4 flex items-end gap-5">
               <div className="relative h-48 w-20 rounded-full border border-slate-200 bg-slate-100 p-2">
                 <div
-                  className={`absolute bottom-2 left-2 right-2 rounded-full transition-all duration-500 ${getThermometerColor(status)} ${
-                    status === "danger" ? "animate-pulse" : ""
+                  className={`absolute bottom-2 left-2 right-2 rounded-full transition-all duration-500 ${getThermometerColor(latest.status)} ${
+                    latest.status === "danger" ? "animate-pulse" : ""
                   }`}
                   style={{ height: `${Math.max(10, thermometerPercent)}%` }}
                 />
               </div>
               <div className="space-y-2">
-                <p className="text-3xl font-bold text-slate-900">{adjustedLevel} cm</p>
+                <p className="text-3xl font-bold text-slate-900">{latest.levelCm} cm</p>
                 <p className="text-sm text-slate-600">Ketinggian air saat ini</p>
                 <p className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${rainfallCategory.color}`}>
                   Curah hujan {rainfallCategory.label} ({rainfallCategory.detail})
                 </p>
-                <p className="text-sm text-slate-700">{adjustedRainfall} mm/jam</p>
+                <p className="text-sm text-slate-700">{latest.rainfallMm} mm/jam</p>
               </div>
             </div>
 
