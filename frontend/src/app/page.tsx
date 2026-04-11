@@ -23,18 +23,10 @@ const statusLegend = [
     icon: "⚠️",
   },
   {
-    color: "bg-orange-500",
-    title: "Oren (Siaga)",
-    description: "Kondisi mendekati bahaya, masyarakat diminta bersiap untuk evakuasi segera.",
-    threshold: "190 – 219 cm",
-    action: "Aktifkan rencana evakuasi dan prioritaskan kelompok rentan untuk bergerak lebih awal.",
-    icon: "🟠",
-  },
-  {
     color: "bg-rose-500",
     title: "Merah (Bahaya / Evakuasi)",
     description: "Kondisi darurat, evakuasi segera diperlukan sesuai arahan petugas.",
-    threshold: "≥ 220 cm",
+    threshold: "≥ 200 cm",
     action: "Segera evakuasi ke titik aman terdekat dan ikuti arahan petugas.",
     icon: "🚨",
   },
@@ -177,7 +169,7 @@ export default function Home() {
           </Reveal>
 
           <div className="grid gap-4 md:grid-cols-3">
-            {statusLegend.slice(0, 3).map((item, index) => (
+            {statusLegend.map((item, index) => (
               <Reveal key={item.title} delayMs={90 * (index + 1)}>
                 <Card className="h-full border-blue-100 bg-white/95">
                   <div className="flex items-center justify-between gap-2">
@@ -201,34 +193,11 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-3">
-            <Reveal delayMs={320}>
-              {statusLegend.slice(3, 4).map((item) => (
-                <Card key={item.title} className="h-full border-blue-100 bg-white/95">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`inline-flex h-3 w-16 rounded-full ${item.color}`} />
-                    <span className="text-lg" aria-hidden="true">{item.icon}</span>
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{item.title}</h3>
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-
-                  <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
-                    <p className="font-semibold text-slate-800">Ambang indikator</p>
-                    <p className="mt-1">{item.threshold}</p>
-                  </div>
-
-                  <div className="mt-3 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
-                    <p className="font-semibold">Tindakan cepat</p>
-                    <p className="mt-1 leading-relaxed">{item.action}</p>
-                  </div>
-                </Card>
-              ))}
-            </Reveal>
-
-            <Reveal delayMs={380} className="lg:col-span-2">
+          <div className="mt-4 grid gap-4 lg:grid-cols-1">
+            <Reveal delayMs={380}>
               <div className="rounded-xl border border-blue-100 bg-white p-4 md:p-5">
                 <h3 className="text-base font-semibold text-slate-900">Ringkasan Keputusan Cepat</h3>
-                <div className="mt-3 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+                <div className="mt-3 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
                   <div className="rounded-lg bg-emerald-50 p-3">
                     <p className="font-semibold text-emerald-700">Normal</p>
                     <p className="mt-1">Pantau rutin, tidak perlu evakuasi.</p>
@@ -236,10 +205,6 @@ export default function Home() {
                   <div className="rounded-lg bg-amber-50 p-3">
                     <p className="font-semibold text-amber-700">Waspada</p>
                     <p className="mt-1">Siapkan rencana evakuasi keluarga.</p>
-                  </div>
-                  <div className="rounded-lg bg-orange-50 p-3">
-                    <p className="font-semibold text-orange-700">Siaga</p>
-                    <p className="mt-1">Kurangi aktivitas luar, siap bergerak ke titik aman.</p>
                   </div>
                   <div className="rounded-lg bg-rose-50 p-3">
                     <p className="font-semibold text-rose-700">Bahaya</p>
