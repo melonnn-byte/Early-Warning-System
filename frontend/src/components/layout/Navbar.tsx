@@ -1,18 +1,55 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { landingNavLinks } from "@/constants";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
+interface NavbarItem {
+  href: string;
+  label: string;
+  id?: string;
+}
+
+const userNavLinks: NavbarItem[] = [
+  { href: "/user/dashboard", label: "Dashboard" },
+  { href: "/user/map", label: "Peta Sensor" },
+  { href: "/user/emergency", label: "Kontak Darurat" },
+  { href: "/user/education", label: "Panduan" },
+];
+
 export function Navbar() {
+  const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated, logout, user } = useAuth();
   const [activeSection, setActiveSection] = useState("home");
   const [isHeroMode, setIsHeroMode] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement | null>(null);
   const isHomePage = pathname === "/";
+  const isUserRoute = pathname.startsWith("/user");
+  const isLoggedInUser = isAuthenticated && user?.role === "operator";
+  const useUserNavbar = isUserRoute;
 
-  const links = useMemo(() => landingNavLinks, []);
+  const links = useMemo<NavbarItem[]>(() => (useUserNavbar ? userNavLinks : landingNavLinks), [useUserNavbar]);
+
+  useEffect(() => {
+    if (!profileOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!profileRef.current?.contains(target)) {
+        setProfileOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => window.removeEventListener("mousedown", handleClickOutside);
+  }, [profileOpen]);
 
   useEffect(() => {
     if (!isHomePage) {
@@ -53,6 +90,10 @@ export function Navbar() {
       let currentSection = links[0]?.id ?? "home";
 
       links.forEach((item) => {
+        if (!item.id) {
+          return;
+        }
+
         const section = document.getElementById(item.id);
         if (!section) {
           return;
@@ -78,6 +119,25 @@ export function Navbar() {
       window.removeEventListener("hashchange", updateActiveSection);
     };
   }, [isHomePage, links]);
+
+  const isRouteActive = (href: string) => {
+    if (href === "/") {
+      return pathname === "/";
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const handleLogout = () => {
+    setProfileOpen(false);
+    logout();
+    router.push("/login");
+  };
+
+  const goToProfile = () => {
+    setProfileOpen(false);
+    router.push("/user/profile");
+  };
 
   return (
     <header
@@ -109,7 +169,11 @@ export function Navbar() {
                   isHomePage && isHeroMode
                     ? "text-blue-50/95 hover:bg-white/15 hover:text-white"
                     : "text-slate-600 hover:bg-blue-50 hover:text-blue-700",
-                  isHomePage && activeSection === item.id && (isHeroMode ? "bg-white/15 text-white" : "bg-blue-50 text-blue-700"),
+                  (
+                    isHomePage
+                      ? activeSection === item.id
+                      : isRouteActive(item.href)
+                  ) && (isHomePage && isHeroMode ? "bg-white/15 text-white" : "bg-blue-50 text-blue-700"),
                 )}
               >
                 {item.label}
@@ -117,24 +181,97 @@ export function Navbar() {
                   className={cn(
                     "absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full opacity-0 transition-opacity",
                     isHomePage && isHeroMode ? "bg-white" : "bg-blue-600",
-                    isHomePage && activeSection === item.id && "opacity-100",
+                    (
+                      isHomePage
+                        ? activeSection === item.id
+                        : isRouteActive(item.href)
+                    ) && "opacity-100",
                   )}
                 />
               </Link>
             </li>
           ))}
+          {useUserNavbar && isLoggedInUser && (
+            <li>
+              <Link
+                href="/user/notifications"
+                className={cn(
+                  "inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
+                  isRouteActive("/user/notifications")
+                    ? "border-blue-200 bg-blue-50 text-blue-700"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-blue-50 hover:text-blue-700",
+                )}
+                aria-label="Buka notifikasi"
+                title="Notifikasi"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5" />
+                  <path strokeLinecap="round" d="M10 19a2 2 0 004 0" />
+                </svg>
+              </Link>
+            </li>
+          )}
           <li>
-            <Link
-              href="/login"
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
-                isHomePage && isHeroMode
-                  ? "border border-white/45 text-white hover:bg-white/15"
-                  : "border border-blue-200 text-blue-700 hover:bg-blue-50",
-              )}
-            >
-              Login
-            </Link>
+            {useUserNavbar && isLoggedInUser ? (
+              <div className="relative" ref={profileRef}>
+                <button
+                  type="button"
+                  onClick={() => setProfileOpen((prev) => !prev)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+                  aria-label="Buka menu profil"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    className="h-5 w-5"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="8" r="3.2" />
+                    <path strokeLinecap="round" d="M5.8 19a6.2 6.2 0 0112.4 0" />
+                  </svg>
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 top-11 z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <button
+                      type="button"
+                      onClick={goToProfile}
+                      className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      Edit Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
+                  isHomePage && isHeroMode
+                    ? "border border-white/45 text-white hover:bg-white/15"
+                    : "border border-blue-200 text-blue-700 hover:bg-blue-50",
+                )}
+              >
+                Login
+              </Link>
+            )}
           </li>
         </ul>
       </nav>
