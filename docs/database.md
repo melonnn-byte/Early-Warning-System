@@ -112,8 +112,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
+
+// URL koneksi didefinisikan di prisma.config.ts
+// menggunakan env("DATABASE_URL") dan env("DIRECT_URL")
 
 enum UserRole {
   SUPER_ADMIN
