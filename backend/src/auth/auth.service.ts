@@ -1,12 +1,7 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import {
-  User,
-  UserRole,
-} from '@prisma/client';
-import { createHash } from 'node:crypto';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { User, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface LoginPayload {
@@ -14,21 +9,40 @@ interface LoginPayload {
   password: string;
 }
 
+// Tambahkan interface ini agar TypeScript tahu isi dari token JWT
+interface JwtPayload {
+  sub: string;
+  email: string;
+  role: UserRole;
+}
+
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async login(payload: LoginPayload) {
     const email = payload.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (!user || user.password !== payload.password || !user.isActive) {
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Email atau password tidak valid.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      payload.password,
+      user.password,
+    );
+    if (!isPasswordValid) {
       throw new UnauthorizedException('Email atau password tidak valid.');
     }
 
     return {
-      accessToken: this.buildToken(user, 'access'),
-      refreshToken: this.buildToken(user, 'refresh'),
+      // Menggunakan detik untuk menghindari error Type 'string'
+      accessToken: await this.buildToken(user, 900), // 900 detik = 15 menit
+      refreshToken: await this.buildToken(user, 604800), // 604800 detik = 7 hari
       user: this.toPublicUser(user),
     };
   }
@@ -38,20 +52,34 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token wajib diisi.');
     }
 
-    const id = this.extractUserId(refreshToken);
-    if (!id) {
-      throw new UnauthorizedException('Refresh token tidak valid.');
-    }
+    try {
+      // Inject interface JwtPayload ke verifyAsync agar tidak 'any'
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(
+        refreshToken,
+        {
+          secret: process.env.JWT_SECRET || 'rahasia-super-kuat-ews-123',
+        },
+      );
 
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('User tidak ditemukan.');
-    }
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+      if (!user || !user.isActive) {
+        throw new UnauthorizedException(
+          'User tidak ditemukan atau tidak aktif.',
+        );
+      }
 
-    return {
-      accessToken: this.buildToken(user, 'access'),
-      refreshToken: this.buildToken(user, 'refresh'),
-    };
+      return {
+        accessToken: await this.buildToken(user, 900),
+        refreshToken: await this.buildToken(user, 604800),
+      };
+    } catch {
+      // Hapus deklarasi variabel (error) karena unused variable
+      throw new UnauthorizedException(
+        'Refresh token tidak valid atau kadaluarsa.',
+      );
+    }
   }
 
   async ensureDefaultAdmin() {
@@ -62,10 +90,12 @@ export class AuthService {
       return;
     }
 
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+
     await this.prisma.user.create({
       data: {
         email,
-        password: 'admin123',
+        password: hashedPassword,
         name: 'Admin EWS',
         role: UserRole.ADMIN,
         isActive: true,
@@ -82,18 +112,15 @@ export class AuthService {
     };
   }
 
-  private buildToken(user: User, kind: 'access' | 'refresh') {
-    const raw = `${kind}:${user.id}:${user.email}:${Date.now()}`;
-    return Buffer.from(raw).toString('base64url');
-  }
-
-  private extractUserId(token: string): string | null {
-    try {
-      const decoded = Buffer.from(token, 'base64url').toString('utf8');
-      const parts = decoded.split(':');
-      return parts[1] ?? null;
-    } catch {
-      return null;
-    }
+  // Ubah parameter expiresIn menjadi number (satuan detik)
+  private async buildToken(user: User, expiresInSeconds: number) {
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+    return this.jwtService.signAsync(payload, {
+      expiresIn: expiresInSeconds,
+    });
   }
 }
