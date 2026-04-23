@@ -3,9 +3,12 @@ import {
   Controller,
   HttpCode,
   Post,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ok } from '../common/api-response';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 interface LoginRequest {
   email: string;
@@ -14,6 +17,15 @@ interface LoginRequest {
 
 interface RefreshRequest {
   refreshToken: string;
+}
+
+// Interface untuk memberi tahu TypeScript isi dari objek Request setelah melewati AuthGuard
+interface AuthenticatedRequest {
+  user: {
+    email: string;
+    id: string;
+    role: string;
+  };
 }
 
 @Controller('auth')
@@ -34,9 +46,10 @@ export class AuthController {
     return ok(data);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(200)
-  logout() {
-    return ok({ message: 'Logout berhasil.' });
+  logout(@Request() req: AuthenticatedRequest) {
+    return ok({ message: `Logout berhasil untuk user: ${req.user.email}` });
   }
 }
