@@ -1,0 +1,115 @@
+EARLY-WARNING-SYSTEM/
+├── backend/          # NestJS REST API
+├── frontend/         # Next.js App Router UI
+└── mobile/           # Flutter App (WIP)
+
+1. Backend (NestJS + Prisma)
+backend/
+├── config/
+│   └── firebase-service-account.json  # Kredensial Firebase Admin SDK
+├── prisma/
+│   ├── migrations/                    # File SQL riwayat migrasi DB
+│   └── schema.prisma                  # Definisi tabel PostgreSQL
+├── src/
+│   ├── alerts/                        # Logika notifikasi & broadcast
+│   │   ├── alerts.controller.ts
+│   │   ├── alerts.module.ts
+│   │   └── alerts.service.ts
+│   ├── auth/                          # Modul Keamanan & Login
+│   │   ├── auth.controller.ts
+│   │   ├── auth.module.ts
+│   │   ├── auth.service.ts
+│   │   ├── jwt.strategy.ts            # (BARU) Validasi token JWT
+│   │   └── jwt-auth.guard.ts          # (BARU) Guard untuk proteksi endpoint
+│   ├── common/
+│   │   ├── firebase/                  # Integrasi Firebase Service
+│   │   │   ├── firebase.module.ts
+│   │   │   └── firebase.service.ts
+│   │   └── api-response.ts            # Standardisasi format response API
+│   ├── emergency-contacts/            # Modul kontak darurat
+│   ├── health/                        # Endpoint cek status server & DB
+│   ├── locations/                     # Agregasi data sensor untuk peta
+│   ├── prisma/                        # Prisma Client Service untuk NestJS
+│   ├── rainfall/                      # Endpoint data historis curah hujan
+│   ├── sensors/                       # Manajemen perangkat sensor
+│   ├── thresholds/                    # Pengaturan batas aman/bahaya
+│   ├── water-levels/                  # Endpoint data historis level air
+│   ├── app.controller.ts
+│   ├── app.module.ts
+│   ├── app.service.ts
+│   └── main.ts                        # Entry point backend
+├── test/
+│   ├── app.e2e-spec.ts                # Testing end-to-end
+│   └── jest-e2e.json
+├── .env                               # Environment variables (DB URL, JWT Secret)
+├── .env.example
+├── package.json
+└── tsconfig.json
+
+2. Frontend (Next.js 14/15 App Router)
+frontend/
+├── public/                            # Asset statis (SVG, images)
+│   ├── file.svg, globe.svg, next.svg, vercel.svg, window.svg
+├── src/
+│   ├── app/                           # Konfigurasi Routing
+│   │   ├── admin/                     # Route Dashboard Admin (Protected)
+│   │   │   ├── alerts/                # Broadcast & riwayat alert
+│   │   │   ├── dashboard/             # KPI & Overview admin
+│   │   │   ├── notifications/         # Manajemen notifikasi sistem
+│   │   │   ├── reports/               # Export PDF/CSV
+│   │   │   ├── sensors/               # CRUD Sensor fisik
+│   │   │   ├── thresholds/            # Aturan batas air & hujan
+│   │   │   ├── users/                 # Manajemen akun user
+│   │   │   ├── layout.tsx             # Layout khusus admin
+│   │   │   └── loading.tsx            # Skeleton loading admin
+│   │   ├── contact/                   # Public page kontak
+│   │   ├── dashboard/                 # Public real-time dashboard
+│   │   ├── education/                 # Edukasi mitigasi publik
+│   │   ├── emergency/                 # Info nomor darurat publik
+│   │   ├── login/                     # Halaman Login
+│   │   ├── map/                       # Peta sensor publik
+│   │   ├── register/                  # Halaman Pendaftaran
+│   │   ├── user/                      # Route Dashboard User
+│   │   │   ├── dashboard/
+│   │   │   ├── education/
+│   │   │   ├── emergency/
+│   │   │   ├── map/
+│   │   │   ├── notifications/         
+│   │   │   │   └── [notificationId]/  # Dynamic route detail notif
+│   │   │   └── profile/
+│   │   ├── favicon.ico
+│   │   ├── globals.css                # Styling global (Tailwind)
+│   │   ├── layout.tsx                 # Root layout aplikasi
+│   │   ├── not-found.tsx              # Fallback 404 page
+│   │   └── page.tsx                   # Landing Page utama
+│   │
+│   ├── components/                    # UI Components
+│   │   ├── charts/                    # Grafik air & hujan (WaterLevelChart, dll)
+│   │   ├── dashboard/                 # Widget dashboard (AlertBanner, Gauge)
+│   │   ├── landing/                   # Section untuk halaman depan
+│   │   ├── layout/                    # Shell, Navbar, Footer, Sidebar
+│   │   ├── maps/                      # Komponen Google Maps (Admin & Public)
+│   │   └── ui/                        # Reusable elements (Button, Card, Modal, dll)
+│   │
+│   ├── constants/
+│   │   └── index.ts                   # Konstanta global
+│   │
+│   ├── hooks/                         # React Custom Hooks (Logic)
+│   │   ├── useAuth.ts                 # (BARU DIUPDATE) Logika login via API
+│   │   ├── useUserNotifications.ts
+│   │   ├── useWaterLevel.ts           # Simulasi / Fetch data air
+│   │   └── useWebSocket.ts            # Persiapan koneksi real-time
+│   │
+│   ├── lib/                           # Utility & Konfigurasi Eksternal
+│   │   ├── api.ts                     # (BARU DIUPDATE) Axios instance + Interceptors
+│   │   ├── socket.ts                  # Inisialisasi WebSocket client
+│   │   └── utils.ts                   # Fungsi helper (formatter, dll)
+│   │
+│   └── types/                         # TypeScript Interfaces/Types
+│       ├── alert.ts, sensor.ts, user-notification.ts, user.ts, water-level.ts
+│
+├── next.config.ts                     # Konfigurasi Next.js
+├── package.json
+├── postcss.config.mjs
+├── tailwind.config.ts                 # (Asumsi ada dari globals.css)
+└── tsconfig.json
