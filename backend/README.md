@@ -28,6 +28,38 @@ Lengkapi value berikut di `.env`:
 
 - `DATABASE_URL` → koneksi pooler Supabase (runtime query)
 - `DIRECT_URL` → koneksi direct host Supabase (untuk migrate)
+- `FIREBASE_PROJECT_ID` → project id Firebase
+- `FIREBASE_SERVICE_ACCOUNT_PATH` → path file service-account JSON Firebase Admin SDK
+- `FCM_DEFAULT_TOPIC` → topik default untuk push notification alert
+
+## 3.1) Setup Firebase Admin SDK
+
+1. Letakkan file service-account di:
+
+```bash
+backend/config/firebase-service-account.json
+```
+
+2. Pastikan file tersebut tidak di-commit (sudah di-ignore oleh `.gitignore`).
+
+3. Endpoint `POST /alerts/broadcast` akan:
+
+- menyimpan data alert ke database,
+- mengirim push notification FCM ke topic default (`FCM_DEFAULT_TOPIC`) jika channel alert mengandung `push`, `fcm`, `webpush`, atau `mobile`.
+
+Jika `targetArea` diisi, topic otomatis menjadi `FCM_DEFAULT_TOPIC-{targetArea-slug}`.
+
+4. Client web/mobile perlu subscribe token FCM ke topic via endpoint:
+
+```http
+POST /alerts/subscribe
+Content-Type: application/json
+
+{
+  "token": "FCM_DEVICE_TOKEN",
+  "targetArea": "kecamatan-bandung-kulon"
+}
+```
 
 ## 4) Prisma Workflow
 
