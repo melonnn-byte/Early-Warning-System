@@ -1,0 +1,110 @@
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
+import * as admin from 'firebase-admin';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+interface PushMessageInput {
+  title: string;
+  body: string;
+  data?: Record<string, string | number | boolean | null | undefined>;
+}
+
+@Injectable()
+export class FirebaseService implements OnModuleInit {
+  private readonly logger = new Logger(FirebaseService.name);
+  private app: admin.app.App | null = null;
+
+  onModuleInit() {
+    const credentialPath = this.resolveServiceAccountPath();
+
+    if (!credentialPath) {
+      this.logger.warn('Firebase not initialized because service account path is not configured.');
+      return;
+    }
+
+    if (!fs.existsSync(credentialPath)) {
+      this.logger.warn(`Firebase not initialized because service account file is missing at: ${credentialPath}`);
+      return;
+    }
+
+    try {
+      if (!admin.apps.length) {
+        this.app = admin.initializeApp({
+          credential: admin.credential.cert(credentialPath),
+          projectId: process.env.FIREBASE_PROJECT_ID,
+        });
+      } else {
+        this.app = admin.app();
+      }
+
+      this.logger.log('Firebase Admin initialized successfully.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to initialize Firebase Admin: ${message}`);
+      this.app = null;
+    }
+  }
+
+  isEnabled(): boolean {
+    return this.app !== null;
+  }
+
+  async sendToTopic(topic: string, payload: PushMessageInput): Promise<string | null> {
+    if (!this.app) {
+      return null;
+    }
+
+    const data = Object.fromEntries(
+      Object.entries(payload.data ?? {}).map(([key, value]) => [key, value == null ? '' : String(value)]),
+    );
+
+    const message: admin.messaging.Message = {
+      topic,
+      notification: {
+        title: payload.title,
+        body: payload.body,
+      },
+      data,
+      android: {
+        priority: 'high',
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+        },
+      },
+      webpush: {
+        headers: {
+          Urgency: 'high',
+        },
+      },
+    };
+
+    return this.app.messaging().send(message);
+  }
+
+  async subscribeTokenToTopic(token: string, topic: string) {
+    if (!this.app) {
+      return null;
+    }
+
+    return this.app.messaging().subscribeToTopic([token], topic);
+  }
+
+  private resolveServiceAccountPath(): string | null {
+    const configuredPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH?.trim();
+    const fallbackPath = path.resolve(process.cwd(), 'config/firebase-service-account.json');
+
+    if (!configuredPath) {
+      return fallbackPath;
+    }
+
+    return path.isAbsolute(configuredPath)
+      ? configuredPath
+      : path.resolve(process.cwd(), configuredPath);
+  }
+}
