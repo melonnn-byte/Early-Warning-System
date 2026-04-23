@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import {
   AlertSeverity,
   UserRole,
 } from '@prisma/client';
+import { FirebaseService } from '../common/firebase/firebase.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface BroadcastPayload {
@@ -18,7 +20,12 @@ interface BroadcastPayload {
 
 @Injectable()
 export class AlertsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AlertsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly firebaseService: FirebaseService,
+  ) {}
 
   async getActive() {
     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
@@ -100,6 +107,32 @@ export class AlertsService {
       },
     });
 
+    const shouldSendPush = payload.channels.some((channel) =>
+      ['push', 'fcm', 'webpush', 'mobile'].includes(channel.toLowerCase()),
+    );
+
+    const pushTopic = shouldSendPush ? this.buildPushTopic(payload.targetArea) : null;
+    let pushMessageId: string | null = null;
+    let pushError: string | null = null;
+
+    if (shouldSendPush && pushTopic) {
+      try {
+        pushMessageId = await this.firebaseService.sendToTopic(pushTopic, {
+          title: payload.title,
+          body: payload.message,
+          data: {
+            alertId: alert.id,
+            severity: alert.severity,
+            targetArea: alert.targetArea,
+            sentAt: alert.sentAt.toISOString(),
+          },
+        });
+      } catch (error) {
+        pushError = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to send FCM push for alert ${alert.id}: ${pushError}`);
+      }
+    }
+
     return {
       id: alert.id,
       title: alert.title,
@@ -113,6 +146,56 @@ export class AlertsService {
         name: sender.name,
         email: sender.email,
       },
+      pushDelivery: {
+        enabled: this.firebaseService.isEnabled(),
+        attempted: shouldSendPush,
+        topic: pushTopic,
+        messageId: pushMessageId,
+        error: pushError,
+      },
     };
+  }
+
+  async subscribePushToken(token: string, targetArea?: string) {
+    if (!token?.trim()) {
+      throw new BadRequestException('token FCM wajib diisi.');
+    }
+
+    if (!this.firebaseService.isEnabled()) {
+      throw new BadRequestException('Firebase belum terkonfigurasi di backend.');
+    }
+
+    const topic = this.buildPushTopic(targetArea);
+    const response = await this.firebaseService.subscribeTokenToTopic(token.trim(), topic);
+
+    return {
+      topic,
+      successCount: response?.successCount ?? 0,
+      failureCount: response?.failureCount ?? 0,
+      errors:
+        response?.errors.map((item) => ({
+          index: item.index,
+          reason: item.error.message,
+        })) ?? [],
+    };
+  }
+
+  private buildPushTopic(targetArea?: string): string {
+    const baseTopic = process.env.FCM_DEFAULT_TOPIC?.trim() || 'ews-alerts';
+
+    if (!targetArea?.trim()) {
+      return baseTopic;
+    }
+
+    const areaSlug = targetArea
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    if (!areaSlug) {
+      return baseTopic;
+    }
+
+    return `${baseTopic}-${areaSlug}`;
   }
 }
