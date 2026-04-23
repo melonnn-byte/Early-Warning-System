@@ -5,17 +5,28 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
+interface AuthUser {
+  id: string;
+  email: string;
+  role: string;
+}
+
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   canActivate(context: ExecutionContext) {
-    // Logika tambahan bisa ditaruh di sini jika perlu
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  // 1. Parameter '_info' dan seterusnya dihapus karena tidak dipakai
+  handleRequest<TUser = AuthUser>(err: unknown, user: TUser): TUser {
     if (err || !user) {
-      throw err || new UnauthorizedException('Silakan login terlebih dahulu.');
+      // 2. Pastikan yang dilempar (throw) SELALU berupa instance dari Error
+      if (err instanceof Error) {
+        throw err;
+      }
+      throw new UnauthorizedException('Silakan login terlebih dahulu.');
     }
+
     return user;
   }
 }
