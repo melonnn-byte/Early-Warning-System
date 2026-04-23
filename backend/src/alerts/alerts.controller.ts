@@ -17,6 +17,11 @@ interface BroadcastRequest {
   targetArea?: string;
 }
 
+interface SubscribeRequest {
+  token: string;
+  targetArea?: string;
+}
+
 @Controller('alerts')
 export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
@@ -30,6 +35,12 @@ export class AlertsController {
   @Post('broadcast')
   async broadcast(@Body() body: BroadcastRequest) {
     const data = await this.alertsService.broadcast(body);
+    return ok(data);
+  }
+
+  @Post('subscribe')
+  async subscribe(@Body() body: SubscribeRequest) {
+    const data = await this.alertsService.subscribePushToken(body.token, body.targetArea);
     return ok(data);
   }
 
