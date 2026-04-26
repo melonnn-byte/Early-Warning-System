@@ -34,7 +34,6 @@ export function useAuth() {
       const response = await api.post("/auth/login", { email, password });
       
       // Response asumsikan memakai format dari utils backend (ok(data))
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const { accessToken, refreshToken, user: userData } = response.data.data;
 
       // Simpan di Local Storage
@@ -68,7 +67,6 @@ export function useAuth() {
       // Send to backend for verification and JWT generation
       const response = await api.post("/auth/google-login", { idToken });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const { accessToken, refreshToken, user: userData } = response.data.data;
 
       // Simpan di Local Storage
@@ -102,9 +100,9 @@ export function useAuth() {
     }
   }, []);
 
-  // 3. Hapus "phone" agar sesuai dengan batasan interface AppUser saat ini
+  // Sinkronkan perubahan profil ke state lokal agar komponen lain langsung ikut ter-update.
   const updateProfile = useCallback(
-    (payload: Partial<Pick<AppUser, "name" | "email">>) => {
+    (payload: Partial<Pick<AppUser, "name" | "email" | "avatar">>) => {
       setUser((prev) => {
         if (!prev) return prev;
         const nextUser: AppUser = { ...prev, ...payload };

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as admin from 'firebase-admin';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,6 +20,11 @@ interface RegisterPayload {
   name: string;
 }
 
+interface UpdateProfilePayload {
+  name?: string;
+  avatar?: string | null;
+}
+
 interface JwtPayload {
   sub: string;
   email: string;
@@ -31,6 +36,17 @@ interface FirebaseDecodedToken {
   email?: string;
   name?: string;
   picture?: string;
+}
+
+interface UserWithTokenFields {
+  id: string;
+  email: string;
+  role: UserRole;
+}
+
+interface PublicUserFields extends UserWithTokenFields {
+  name: string;
+  avatar?: string | null;
 }
 
 @Injectable()
@@ -130,7 +146,7 @@ export class AuthService {
       const decodedToken = (await admin
         .auth()
         .verifyIdToken(idToken)) as FirebaseDecodedToken;
-      const { email, name } = decodedToken;
+      const { email, name, picture } = decodedToken;
 
       if (!email) {
         throw new BadRequestException(
@@ -150,6 +166,7 @@ export class AuthService {
             password: '',
             role: UserRole.FIELD_OFFICER,
             isActive: true,
+            avatar: picture,
           },
         });
       } else if (!user.isActive) {
@@ -173,11 +190,12 @@ export class AuthService {
   }
 
   // --- FUNGSI UPDATE PROFILE BARU ---
-  async updateProfile(userId: string, data: { name?: string }) {
+  async updateProfile(userId: string, data: UpdateProfilePayload) {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
         name: data.name,
+        avatar: data.avatar,
       },
     });
 
@@ -207,17 +225,21 @@ export class AuthService {
   }
 
   // --- HELPER PUBLIC USER ---
-  private toPublicUser(user: User) {
+  private toPublicUser(user: PublicUserFields) {
     return {
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
+      avatar: user.avatar ?? null,
     };
   }
 
   // --- HELPER BUILD TOKEN ---
-  private async buildToken(user: User, expiresInSeconds: number) {
+  private async buildToken(
+    user: UserWithTokenFields,
+    expiresInSeconds: number,
+  ) {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,

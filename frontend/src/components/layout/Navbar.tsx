@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { landingNavLinks } from "@/constants";
 import { useAuth } from "@/hooks/useAuth";
@@ -215,10 +216,14 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setProfileOpen((prev) => !prev)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-bold text-white shadow-sm ring-2 ring-white hover:bg-blue-700 transition-all focus:outline-none focus:ring-blue-300"
+                  className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-600 font-bold text-white shadow-sm ring-2 ring-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-blue-300"
                   aria-label="Buka menu profil"
                 >
-                  {userInitial}
+                  {user?.avatar ? (
+                    <Image src={user.avatar} alt="Avatar pengguna" fill unoptimized className="object-cover" />
+                  ) : (
+                    userInitial
+                  )}
                 </button>
 
                 {/* Dropdown Menu */}

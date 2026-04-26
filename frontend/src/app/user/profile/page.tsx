@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/api";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateProfile } = useAuth();
   
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -51,19 +52,20 @@ export default function ProfilePage() {
 
     try {
       // Kirim data ke endpoint PUT /auth/profile yang baru kita buat
-      await api.put("/auth/profile", {
+      const response = await api.put("/auth/profile", {
         name,
         avatar,
       });
 
+      const updatedUser = response.data?.data as { name?: string; avatar?: string | null } | undefined;
+      updateProfile({
+        name: updatedUser?.name ?? name,
+        avatar: updatedUser?.avatar ?? avatar,
+      });
+
       setMessage({ type: "success", text: "Profil berhasil diperbarui!" });
-      
-      // Reload halaman agar Auth Provider mengambil data user terbaru
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      
-    } catch (error) {
+
+    } catch {
       setMessage({ type: "error", text: "Gagal memperbarui profil." });
     } finally {
       setIsSubmitting(false);
@@ -94,7 +96,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center gap-6 sm:flex-row">
               <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full ring-4 ring-slate-50">
                 {avatar ? (
-                  <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
+                  <Image src={avatar} alt="Profile" fill unoptimized className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-blue-600 text-4xl font-bold text-white">
                     {userInitial}
