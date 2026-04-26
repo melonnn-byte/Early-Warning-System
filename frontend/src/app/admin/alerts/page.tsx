@@ -1,15 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatTimestamp } from "@/lib/utils";
-import { mockBroadcastHistory } from "@/constants";
+import api from "@/lib/api";
 
 type AlertLevel = "Aman" | "Waspada" | "Bahaya";
 
 export default function AdminAlertsPage() {
-  const [target, setTarget] = useState("Semua Pengguna Terdaftar");
+  const [target, setTarget] = useState("Semua Wilayah");
   const [level, setLevel] = useState<AlertLevel>("Waspada");
   const [channels, setChannels] = useState({
     whatsapp: true,
@@ -17,8 +17,61 @@ export default function AdminAlertsPage() {
     email: false,
   });
   const [message, setMessage] = useState("Waspada kenaikan debit air di sektor hilir. Mohon siaga dan pantau instruksi lanjutan.");
+  const [title, setTitle] = useState("Peringatan Kenaikan Debit Air");
   const [sent, setSent] = useState(false);
-  const [history, setHistory] = useState(mockBroadcastHistory);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [history, setHistory] = useState<Array<{
+    id: string;
+    sentAt: string;
+    level: AlertLevel;
+    channels: string[];
+    sender: string;
+    status: "Berhasil" | "Gagal";
+  }>>([]);
+
+  const loadHistory = async () => {
+    setErrorMessage(null);
+    try {
+      const response = await api.get("/alerts/history", {
+        params: { page: 1, limit: 50 },
+      });
+      const items = (response.data?.data?.items ?? []) as Array<{
+        id: string;
+        sentAt: string;
+        severity: "INFO" | "WARNING" | "DANGER";
+        channels: string[];
+        user?: { name?: string };
+      }>;
+
+      setHistory(
+        items.map((item) => ({
+          id: item.id,
+          sentAt: item.sentAt,
+          level:
+            item.severity === "DANGER"
+              ? "Bahaya"
+              : item.severity === "WARNING"
+                ? "Waspada"
+                : "Aman",
+          channels: item.channels,
+          sender: item.user?.name ?? "Admin EWS",
+          status: "Berhasil",
+        })),
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat riwayat peringatan.");
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadHistory();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const toggleChannel = (key: keyof typeof channels) => {
     setChannels((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -27,39 +80,46 @@ export default function AdminAlertsPage() {
   const applyTemplate = (type: "evakuasi" | "waspada") => {
     if (type === "evakuasi") {
       setLevel("Bahaya");
+      setTitle("Instruksi Evakuasi Segera");
       setMessage("PERHATIAN: Status BAHAYA. Segera lakukan evakuasi terarah ke titik aman terdekat sesuai prosedur BPBD.");
       return;
     }
 
     setLevel("Waspada");
+    setTitle("Status Waspada");
     setMessage("Status WASPADA: terjadi kenaikan debit air. Mohon tingkatkan kesiapsiagaan dan pantau update resmi.");
   };
 
-  const sendAlert = (event: FormEvent) => {
+  const sendAlert = async (event: FormEvent) => {
     event.preventDefault();
+    setErrorMessage(null);
+    setSent(false);
 
     const usedChannels = [
-      channels.whatsapp ? "WhatsApp" : null,
-      channels.push ? "Push Notification" : null,
-      channels.email ? "Email" : null,
+      channels.whatsapp ? "whatsapp" : null,
+      channels.push ? "push" : null,
+      channels.email ? "email" : null,
     ].filter((item): item is string => Boolean(item));
 
     if (usedChannels.length === 0) {
-      setSent(false);
+      setErrorMessage("Pilih minimal satu saluran pengiriman.");
       return;
     }
 
-    const nextHistoryItem = {
-      id: `BRC-${history.length + 1}`,
-      sentAt: new Date().toISOString(),
-      level,
-      channels: usedChannels,
-      sender: "Admin EWS",
-      status: "Berhasil" as const,
-    };
+    try {
+      await api.post("/alerts/broadcast", {
+        title,
+        message,
+        severity: level === "Bahaya" ? "DANGER" : level === "Waspada" ? "WARNING" : "INFO",
+        channels: usedChannels,
+        targetArea: target === "Semua Wilayah" ? null : target,
+      });
 
-    setHistory((prev) => [nextHistoryItem, ...prev]);
-    setSent(true);
+      setSent(true);
+      await loadHistory();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal mengirim peringatan.");
+    }
   };
 
   return (
@@ -102,10 +162,20 @@ export default function AdminAlertsPage() {
               onChange={(event) => setTarget(event.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             >
-              <option>Semua Pengguna Terdaftar</option>
-              <option>Hanya Petugas</option>
-              <option>Berdasarkan Area</option>
+              <option>Semua Wilayah</option>
+              <option>Kecamatan Utara</option>
+              <option>Kecamatan Tengah</option>
+              <option>Kecamatan Hilir</option>
             </select>
+          </label>
+
+          <label className="block text-sm text-slate-700">
+            Judul Peringatan
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
           </label>
 
           <label className="block text-sm text-slate-700">
@@ -159,8 +229,9 @@ export default function AdminAlertsPage() {
             <Button type="submit" className="bg-rose-600 hover:bg-rose-700">
               Siarkan Sekarang
             </Button>
-            {sent && <p className="text-sm text-emerald-600">Peringatan berhasil disiarkan (mock).</p>}
+            {sent && <p className="text-sm text-emerald-600">Peringatan berhasil disiarkan.</p>}
           </div>
+          {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
         </form>
       </Card>
 
