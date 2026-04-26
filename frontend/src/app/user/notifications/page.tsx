@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { useWaterLevel } from "@/hooks/useWaterLevel";
 import { useUserNotifications } from "@/hooks/useUserNotifications";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -19,8 +18,7 @@ const levelLabel = {
 } as const;
 
 export default function UserNotificationsPage() {
-  const { liveBySensor } = useWaterLevel();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useUserNotifications(liveBySensor);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useUserNotifications();
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
@@ -84,7 +82,7 @@ export default function UserNotificationsPage() {
 
                     <p className="mt-2 text-sm text-slate-700">{item.message}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Sensor: {item.sensorName} ({item.sensorId}) • Waktu: {formatTimestamp(item.createdAt)}
+                      Target: {item.sensorName} • Waktu: {formatTimestamp(item.createdAt)}
                     </p>
                   </div>
 
