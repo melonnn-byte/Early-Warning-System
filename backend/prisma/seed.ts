@@ -39,6 +39,22 @@ async function upsertUsers() {
       phone: '6281110000002',
     },
     {
+      email: 'admin2@ews.com',
+      name: 'Admin Operasional EWS',
+      password: 'AdminOps123!',
+      role: UserRole.ADMIN,
+      institution: 'BPBD Kota',
+      phone: '6281110000005',
+    },
+    {
+      email: 'officer@ews.com',
+      name: 'Petugas Lapangan EWS',
+      password: 'Field12345!',
+      role: UserRole.FIELD_OFFICER,
+      institution: 'Tim Reaksi Cepat',
+      phone: '6281110000006',
+    },
+    {
       email: 'user1@ews.com',
       name: 'User Warga 1',
       password: 'User12345!',
@@ -53,6 +69,14 @@ async function upsertUsers() {
       role: UserRole.USER,
       institution: 'Warga Padang Utara',
       phone: '6281110000004',
+    },
+    {
+      email: 'user3@ews.com',
+      name: 'User Warga 3',
+      password: 'User12345!',
+      role: UserRole.USER,
+      institution: 'Warga Nanggalo',
+      phone: '6281110000007',
     },
   ];
 
@@ -348,8 +372,11 @@ async function main() {
   console.log('Akun cepat login:');
   console.log('- superadmin@ews.com / Superadmin123!');
   console.log('- admin@ews.com / Admin123!');
+  console.log('- admin2@ews.com / AdminOps123!');
+  console.log('- officer@ews.com / Field12345!');
   console.log('- user1@ews.com / User12345!');
   console.log('- user2@ews.com / User12345!');
+  console.log('- user3@ews.com / User12345!');
 }
 
 void main()
