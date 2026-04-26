@@ -1,6 +1,6 @@
-export type UserRole = "admin" | "operator";
+export type UserRole = "admin" | "user";
 
-export type BackendUserRole = "SUPER_ADMIN" | "ADMIN" | "FIELD_OFFICER" | "USER";
+export type BackendUserRole = "ADMIN" | "USER";
 
 export interface AppUser {
   id: string;
