@@ -10,9 +10,6 @@ const PUBLIC_ROUTES = new Set([
   "/education",
 ]);
 
-const ADMIN_ROUTES = new Set(["/admin"]);
-const USER_ROUTES = new Set(["/user"]);
-
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -29,9 +26,6 @@ export function middleware(request: NextRequest) {
 
   // Get tokens from cookies (stored by login flow)
   const accessToken = request.cookies.get("ews_access_token")?.value;
-  
-  // Get user data from cookies or localStorage (middleware runs on server, so check headers)
-  const userDataHeader = request.headers.get("x-user-role");
   
   // If no token, redirect to login
   if (!accessToken && !isPublicRoute) {
