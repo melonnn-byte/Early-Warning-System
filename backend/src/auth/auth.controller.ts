@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
   Put,
@@ -20,6 +21,7 @@ interface RegisterRequest {
   name: string;
   email: string;
   password: string;
+  institution?: string;
 }
 
 interface RefreshRequest {
@@ -67,6 +69,14 @@ export class AuthController {
   @HttpCode(200)
   async googleLogin(@Body() body: GoogleLoginRequest) {
     const data = await this.authService.googleLogin(body.idToken);
+    return ok(data);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @HttpCode(200)
+  async me(@Request() req: AuthenticatedRequest) {
+    const data = await this.authService.getProfile(req.user.id);
     return ok(data);
   }
 
