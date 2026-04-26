@@ -52,12 +52,27 @@ export class AlertsService {
         orderBy: { sentAt: 'desc' },
         skip: (safePage - 1) * safeLimit,
         take: safeLimit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
       }),
       this.prisma.alert.count(),
     ]);
 
+    const normalizedItems = items.map((item) => ({
+      ...item,
+      sourceType: item.user?.role === UserRole.ADMIN ? 'ADMIN' : 'SYSTEM',
+    }));
+
     return {
-      items,
+      items: normalizedItems,
       pagination: {
         page: safePage,
         limit: safeLimit,
@@ -76,6 +91,7 @@ export class AlertsService {
             id: true,
             name: true,
             email: true,
+            role: true,
           },
         },
       },
@@ -85,7 +101,10 @@ export class AlertsService {
       throw new BadRequestException('Notifikasi tidak ditemukan.');
     }
 
-    return item;
+    return {
+      ...item,
+      sourceType: item.user?.role === UserRole.ADMIN ? 'ADMIN' : 'SYSTEM',
+    };
   }
 
   async broadcast(payload: BroadcastPayload) {
