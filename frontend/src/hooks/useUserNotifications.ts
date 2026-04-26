@@ -12,6 +12,11 @@ interface ApiAlertItem {
   message: string;
   severity: "INFO" | "WARNING" | "DANGER";
   targetArea?: string | null;
+  channels?: string[];
+  sourceType?: "ADMIN" | "SYSTEM";
+  user?: {
+    name?: string | null;
+  } | null;
   sentAt: string;
 }
 
@@ -72,6 +77,7 @@ export function useUserNotifications() {
 
       const mapped: UserNotificationItem[] = rows.map((row) => {
         const riskLevel = mapSeverityToRiskLevel(row.severity);
+        const sourceType = row.sourceType ?? (row.user?.name ? "ADMIN" : "SYSTEM");
 
         return {
           id: row.id,
@@ -84,6 +90,9 @@ export function useUserNotifications() {
           createdAt: row.sentAt,
           isRead: Boolean(readMap[row.id]),
           guideHref: mapSeverityToGuideHref(row.severity),
+          senderName: row.user?.name?.trim() || (sourceType === "ADMIN" ? "Admin EWS" : "Sistem EWS"),
+          sourceType,
+          channels: row.channels ?? [],
         };
       });
 
