@@ -67,6 +67,27 @@ export class AlertsService {
     };
   }
 
+  async getById(id: string) {
+    const item = await this.prisma.alert.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!item) {
+      throw new BadRequestException('Notifikasi tidak ditemukan.');
+    }
+
+    return item;
+  }
+
   async broadcast(payload: BroadcastPayload) {
     if (
       !payload.title ||
