@@ -104,34 +104,6 @@ export const mockAlertHistory: AlertMessage[] = [
   },
 ];
 
-export interface DummyAuthAccount {
-  email: string;
-  password: string;
-  name: string;
-  role: AppUser["role"];
-}
-
-export const dummyAuthAccounts: DummyAuthAccount[] = [
-  {
-    email: "admin@ews.local",
-    password: "Admin123!",
-    name: "Admin EWS",
-    role: "admin",
-  },
-  {
-    email: "operator@ews.local",
-    password: "Operator123!",
-    name: "Operator Lapangan",
-    role: "operator",
-  },
-  {
-    email: "supervisor@ews.local",
-    password: "Supervisor123!",
-    name: "Supervisor EWS",
-    role: "admin",
-  },
-];
-
 export const mockUsers: AppUser[] = [
   { id: "USR-01", name: "Petugas A", email: "petugas.a@ews.id", whatsappNumber: "6281211110001", role: "operator" },
   { id: "USR-02", name: "Petugas B", email: "petugas.b@ews.id", whatsappNumber: "6281211110002", role: "operator" },
