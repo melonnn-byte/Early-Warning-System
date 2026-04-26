@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   Post,
+  Put,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -15,7 +16,6 @@ interface LoginRequest {
   password: string;
 }
 
-// Interface baru untuk request pendaftaran
 interface RegisterRequest {
   name: string;
   email: string;
@@ -30,7 +30,6 @@ interface GoogleLoginRequest {
   idToken: string;
 }
 
-// Interface untuk memberi tahu TypeScript isi dari objek Request setelah melewati AuthGuard
 interface AuthenticatedRequest {
   user: {
     email: string;
@@ -43,15 +42,13 @@ interface AuthenticatedRequest {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // --- ENDPOINT REGISTER BARU ---
   @Post('register')
-  @HttpCode(201) // 201 Created
+  @HttpCode(201)
   async register(@Body() body: RegisterRequest) {
     const data = await this.authService.register(body);
     return ok(data);
   }
 
-  // --- ENDPOINT LOGIN ---
   @Post('login')
   @HttpCode(200)
   async login(@Body() body: LoginRequest) {
@@ -59,7 +56,6 @@ export class AuthController {
     return ok(data);
   }
 
-  // --- ENDPOINT REFRESH ---
   @Post('refresh')
   @HttpCode(200)
   async refresh(@Body() body: RefreshRequest) {
@@ -67,7 +63,6 @@ export class AuthController {
     return ok(data);
   }
 
-  // --- ENDPOINT GOOGLE LOGIN ---
   @Post('google-login')
   @HttpCode(200)
   async googleLogin(@Body() body: GoogleLoginRequest) {
@@ -75,7 +70,18 @@ export class AuthController {
     return ok(data);
   }
 
-  // --- ENDPOINT LOGOUT ---
+  // --- ENDPOINT UPDATE PROFILE BARU ---
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  @HttpCode(200)
+  async updateProfile(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { name?: string; avatar?: string },
+  ) {
+    const data = await this.authService.updateProfile(req.user.id, body);
+    return ok(data);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(200)

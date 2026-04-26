@@ -14,21 +14,18 @@ interface LoginPayload {
   password: string;
 }
 
-// Interface baru untuk payload pendaftaran
 interface RegisterPayload {
   email: string;
   password: string;
   name: string;
 }
 
-// Tambahkan interface ini agar TypeScript tahu isi dari token JWT
 interface JwtPayload {
   sub: string;
   email: string;
   role: UserRole;
 }
 
-// Interface untuk Firebase decoded token
 interface FirebaseDecodedToken {
   uid: string;
   email?: string;
@@ -47,7 +44,6 @@ export class AuthService {
   async register(payload: RegisterPayload) {
     const email = payload.email.trim().toLowerCase();
 
-    // Cek apakah email sudah dipakai
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -55,16 +51,13 @@ export class AuthService {
       throw new BadRequestException('Email sudah terdaftar. Silakan login.');
     }
 
-    // Hash password sebelum disimpan
     const hashedPassword = await bcrypt.hash(payload.password, 10);
 
-    // Simpan ke database Prisma
     const newUser = await this.prisma.user.create({
       data: {
         email,
         name: payload.name,
         password: hashedPassword,
-        // Role default, karena belum ada admin yang meng-approve
         role: UserRole.FIELD_OFFICER,
         isActive: true,
       },
@@ -91,9 +84,8 @@ export class AuthService {
     }
 
     return {
-      // Menggunakan detik untuk menghindari error Type 'string'
-      accessToken: await this.buildToken(user, 900), // 900 detik = 15 menit
-      refreshToken: await this.buildToken(user, 604800), // 604800 detik = 7 hari
+      accessToken: await this.buildToken(user, 900),
+      refreshToken: await this.buildToken(user, 604800),
       user: this.toPublicUser(user),
     };
   }
@@ -105,7 +97,6 @@ export class AuthService {
     }
 
     try {
-      // Inject interface JwtPayload ke verifyAsync agar tidak 'any'
       const payload = await this.jwtService.verifyAsync<JwtPayload>(
         refreshToken,
         {
@@ -127,7 +118,6 @@ export class AuthService {
         refreshToken: await this.buildToken(user, 604800),
       };
     } catch {
-      // Hapus deklarasi variabel (error) karena unused variable
       throw new UnauthorizedException(
         'Refresh token tidak valid atau kadaluarsa.',
       );
@@ -137,7 +127,6 @@ export class AuthService {
   // --- FUNGSI GOOGLE LOGIN ---
   async googleLogin(idToken: string) {
     try {
-      // Verify Firebase ID token
       const decodedToken = (await admin
         .auth()
         .verifyIdToken(idToken)) as FirebaseDecodedToken;
@@ -149,23 +138,18 @@ export class AuthService {
         );
       }
 
-      // Check if user exists
       let user = await this.prisma.user.findUnique({
         where: { email: email.toLowerCase() },
       });
 
       if (!user) {
-        // Create new user from Google account
         user = await this.prisma.user.create({
           data: {
             email: email.toLowerCase(),
             name: name || 'Google User',
-            // No password for Google users
-            password: '', // Empty password for OAuth users
+            password: '',
             role: UserRole.FIELD_OFFICER,
             isActive: true,
-            // Optional: store Firebase UID
-            // firebaseUid: uid,
           },
         });
       } else if (!user.isActive) {
@@ -186,6 +170,18 @@ export class AuthService {
       }
       throw new UnauthorizedException('Token Google tidak valid.');
     }
+  }
+
+  // --- FUNGSI UPDATE PROFILE BARU ---
+  async updateProfile(userId: string, data: { name?: string }) {
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: data.name,
+      },
+    });
+
+    return this.toPublicUser(updatedUser);
   }
 
   // --- FUNGSI DEFAULT ADMIN ---
@@ -221,7 +217,6 @@ export class AuthService {
   }
 
   // --- HELPER BUILD TOKEN ---
-  // Ubah parameter expiresIn menjadi number (satuan detik)
   private async buildToken(user: User, expiresInSeconds: number) {
     const payload: JwtPayload = {
       sub: user.id,
