@@ -24,21 +24,24 @@ export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, logout, user } = useAuth();
+  
   const [activeSection, setActiveSection] = useState("home");
   const [isHeroMode, setIsHeroMode] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  
   const isHomePage = pathname === "/";
   const isUserRoute = pathname.startsWith("/user");
-  const isLoggedInUser = isAuthenticated && user?.role === "operator";
-  const useUserNavbar = isUserRoute;
+  
+  // Perbaikan: Hanya mengecek isAuthenticated agar muncul untuk semua role yang login
+  const isLoggedInUser = isAuthenticated && !!user;
+  const useUserNavbar = isUserRoute || isLoggedInUser;
 
   const links = useMemo<NavbarItem[]>(() => (useUserNavbar ? userNavLinks : landingNavLinks), [useUserNavbar]);
 
+  // Handle klik di luar area dropdown untuk menutupnya
   useEffect(() => {
-    if (!profileOpen) {
-      return;
-    }
+    if (!profileOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -51,15 +54,12 @@ export function Navbar() {
     return () => window.removeEventListener("mousedown", handleClickOutside);
   }, [profileOpen]);
 
+  // Efek transisi Navbar saat di Landing Page
   useEffect(() => {
-    if (!isHomePage) {
-      return;
-    }
+    if (!isHomePage) return;
 
     const heroSection = document.getElementById("home");
-    if (!heroSection) {
-      return;
-    }
+    if (!heroSection) return;
 
     const updateHeroMode = () => {
       const heroBottom = heroSection.getBoundingClientRect().bottom;
@@ -78,10 +78,9 @@ export function Navbar() {
     };
   }, [isHomePage]);
 
+  // Highlight menu aktif saat di-scroll di Landing Page
   useEffect(() => {
-    if (!isHomePage) {
-      return;
-    }
+    if (!isHomePage) return;
 
     const navbarOffset = 92;
 
@@ -90,14 +89,9 @@ export function Navbar() {
       let currentSection = links[0]?.id ?? "home";
 
       links.forEach((item) => {
-        if (!item.id) {
-          return;
-        }
-
+        if (!item.id) return;
         const section = document.getElementById(item.id);
-        if (!section) {
-          return;
-        }
+        if (!section) return;
 
         if (section.offsetTop <= currentPosition) {
           currentSection = item.id;
@@ -121,23 +115,23 @@ export function Navbar() {
   }, [isHomePage, links]);
 
   const isRouteActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/";
-    }
-
+    if (href === "/") return pathname === "/";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    logout();
+    await logout();
     router.push("/login");
   };
 
-  const goToProfile = () => {
+  const navigateTo = (path: string) => {
     setProfileOpen(false);
-    router.push("/user/profile");
+    router.push(path);
   };
+
+  // Mengambil inisial nama untuk Avatar
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
     <header
@@ -159,9 +153,9 @@ export function Navbar() {
         >
           EWS Flood Guard
         </Link>
-        <ul className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+        <ul className="flex flex-wrap items-center gap-2 sm:gap-3">
           {links.map((item) => (
-            <li key={item.href}>
+            <li key={item.href} className="hidden md:block">
               <Link
                 href={item.href}
                 className={cn(
@@ -191,12 +185,14 @@ export function Navbar() {
               </Link>
             </li>
           ))}
-          {useUserNavbar && isLoggedInUser && (
+
+          {/* Ikon Notifikasi (Muncul jika user sudah login) */}
+          {isLoggedInUser && (
             <li>
               <Link
                 href="/user/notifications"
                 className={cn(
-                  "inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors",
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ml-2",
                   isRouteActive("/user/notifications")
                     ? "border-blue-200 bg-blue-50 text-blue-700"
                     : "border-slate-200 bg-white text-slate-600 hover:bg-blue-50 hover:text-blue-700",
@@ -204,69 +200,76 @@ export function Navbar() {
                 aria-label="Buka notifikasi"
                 title="Notifikasi"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  className="h-5 w-5"
-                  aria-hidden="true"
-                >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-4 w-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5" />
                   <path strokeLinecap="round" d="M10 19a2 2 0 004 0" />
                 </svg>
               </Link>
             </li>
           )}
+
           <li>
-            {useUserNavbar && isLoggedInUser ? (
+            {isLoggedInUser ? (
               <div className="relative" ref={profileRef}>
+                {/* Tombol Profil (Avatar Lingkaran) */}
                 <button
                   type="button"
                   onClick={() => setProfileOpen((prev) => !prev)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-bold text-white shadow-sm ring-2 ring-white hover:bg-blue-700 transition-all focus:outline-none focus:ring-blue-300"
                   aria-label="Buka menu profil"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.9"
-                    className="h-5 w-5"
-                    aria-hidden="true"
-                  >
-                    <circle cx="12" cy="8" r="3.2" />
-                    <path strokeLinecap="round" d="M5.8 19a6.2 6.2 0 0112.4 0" />
-                  </svg>
+                  {userInitial}
                 </button>
 
+                {/* Dropdown Menu */}
                 {profileOpen && (
-                  <div className="absolute right-0 top-11 z-50 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                    <button
-                      type="button"
-                      onClick={goToProfile}
-                      className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      Edit Profile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="block w-full border-t border-slate-100 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-                    >
-                      Logout
-                    </button>
+                  <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2">
+                    {/* Header Dropdown (Nama & Email) */}
+                    <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                      <p className="truncate text-sm font-semibold text-slate-800">{user?.name}</p>
+                      <p className="truncate text-xs font-medium text-slate-500">{user?.email}</p>
+                    </div>
+
+                    {/* Isi Dropdown */}
+                    <div className="p-1.5">
+                      <button
+                        type="button"
+                        onClick={() => navigateTo("/user/profile")}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateTo("/user/settings")}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        Pengaturan
+                      </button>
+                    </div>
+
+                    {/* Tombol Keluar */}
+                    <div className="border-t border-slate-100 p-1.5">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-600 hover:bg-rose-50"
+                      >
+                        Keluar
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
+              // Tombol Login (Muncul jika user belum login)
               <Link
                 href="/login"
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
+                  "rounded-full px-4 py-1.5 text-xs font-bold transition-colors ml-2",
                   isHomePage && isHeroMode
-                    ? "border border-white/45 text-white hover:bg-white/15"
-                    : "border border-blue-200 text-blue-700 hover:bg-blue-50",
+                    ? "bg-white text-blue-700 hover:bg-blue-50"
+                    : "bg-blue-600 text-white hover:bg-blue-700",
                 )}
               >
                 Login
