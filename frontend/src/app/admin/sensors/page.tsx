@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Sensor, SensorConnectivity } from "@/types/sensor";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { getStatusFromLevel } from "@/lib/utils";
-import { mockSensors } from "@/constants";
+import api from "@/lib/api";
 
 interface SensorFormState {
   id: string;
@@ -34,11 +34,68 @@ const emptyForm: SensorFormState = {
 };
 
 export default function AdminSensorsPage() {
-  const [sensors, setSensors] = useState<Sensor[]>(mockSensors);
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState<SensorFormState>(emptyForm);
+
+  const loadSensors = async () => {
+    setErrorMessage(null);
+    try {
+      const [sensorResp, waterResp] = await Promise.all([
+        api.get("/sensors"),
+        api.get("/water-levels/current"),
+      ]);
+
+      const sensorRows = (sensorResp.data?.data ?? []) as Array<{
+        id: string;
+        sensorId: string;
+        name: string;
+        latitude: number;
+        longitude: number;
+        batteryLevel: number | null;
+        connectivity: "ONLINE" | "OFFLINE" | "MAINTENANCE";
+        lastActiveAt: string | null;
+      }>;
+
+      const waterRows = (waterResp.data?.data ?? []) as Array<{
+        sensorId: string;
+        waterLevel: number;
+        recordedAt: string;
+      }>;
+
+      const waterMap = new Map(waterRows.map((row) => [row.sensorId, row]));
+      const mapped: Sensor[] = sensorRows.map((item) => {
+        const water = waterMap.get(item.sensorId);
+        const level = water?.waterLevel ?? 0;
+        return {
+          id: item.id,
+          name: item.name,
+          riverName: item.name,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          connectivity: item.connectivity === "ONLINE" ? "online" : "offline",
+          batteryPercent: item.batteryLevel ?? 0,
+          lastLevelCm: level,
+          status: getStatusFromLevel(level),
+          updatedAt: water?.recordedAt ?? item.lastActiveAt ?? new Date().toISOString(),
+        };
+      });
+
+      setSensors(mapped);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data sensor.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadSensors();
+  }, []);
 
   const modalTitle = editingId ? "Edit Sensor" : "Tambah Sensor";
 
@@ -77,37 +134,46 @@ export default function AdminSensorsPage() {
     setOpen(true);
   };
 
-  const deleteSensor = (id: string) => {
-    setSensors((prev) => prev.filter((sensor) => sensor.id !== id));
-    setSavedMessage("Sensor berhasil dihapus.");
+  const deleteSensor = async (id: string) => {
+    setSavedMessage(null);
+    setErrorMessage(null);
+    try {
+      await api.delete(`/sensors/${id}`);
+      setSavedMessage("Sensor berhasil dihapus.");
+      await loadSensors();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus sensor.");
+    }
   };
 
-  const submitForm = (event: FormEvent) => {
+  const submitForm = async (event: FormEvent) => {
     event.preventDefault();
+    setSavedMessage(null);
+    setErrorMessage(null);
 
-    const nextSensor: Sensor = {
-      id: form.id,
-      name: form.name,
-      riverName: form.riverName,
-      latitude: form.latitude,
-      longitude: form.longitude,
-      connectivity: form.connectivity,
-      batteryPercent: form.batteryPercent,
-      lastLevelCm: form.lastLevelCm,
-      status: getStatusFromLevel(form.lastLevelCm),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const payload = {
+        sensorId: form.id,
+        name: form.name,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        batteryLevel: form.batteryPercent,
+        connectivity: form.connectivity === "online" ? "ONLINE" : "OFFLINE",
+      };
 
-    setSensors((prev) => {
       if (editingId) {
-        return prev.map((item) => (item.id === editingId ? nextSensor : item));
+        await api.put(`/sensors/${editingId}`, payload);
+        setSavedMessage("Data sensor berhasil diperbarui.");
+      } else {
+        await api.post("/sensors", payload);
+        setSavedMessage("Sensor baru berhasil ditambahkan.");
       }
 
-      return [nextSensor, ...prev];
-    });
-
-    setSavedMessage(editingId ? "Data sensor berhasil diperbarui." : "Sensor baru berhasil ditambahkan.");
-    setOpen(false);
+      setOpen(false);
+      await loadSensors();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menyimpan sensor.");
+    }
   };
 
   return (
@@ -148,7 +214,9 @@ export default function AdminSensorsPage() {
         </Card>
       </div>
 
+      {loading && <p className="text-sm text-slate-500">Memuat data sensor...</p>}
       {savedMessage && <p className="text-sm font-medium text-emerald-600">{savedMessage}</p>}
+      {errorMessage && <p className="text-sm font-medium text-rose-600">{errorMessage}</p>}
 
       <Card className="overflow-x-auto border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <div className="mb-4 flex items-center justify-between gap-3">
