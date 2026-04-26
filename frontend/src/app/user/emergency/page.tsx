@@ -1,8 +1,18 @@
-import { emergencyContacts } from "@/constants";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
+import api from "@/lib/api";
+
+interface EmergencyContactItem {
+  id: string;
+  name: string;
+  phone: string;
+  category: "BPBD" | "SAR" | "AMBULANCE" | "POLICE" | "HOSPITAL" | "OTHER";
+}
 
 const emergencyMeta: Record<
-  string,
+  EmergencyContactItem["category"],
   {
     scope: string;
     response: string;
@@ -11,26 +21,47 @@ const emergencyMeta: Record<
     buttonClass: string;
   }
 > = {
-  "BPBD Kota": {
+  BPBD: {
     scope: "Koordinasi tanggap bencana, evakuasi wilayah terdampak, dan aktivasi posko.",
     response: "± 5-15 menit (tergantung akses lapangan)",
     note: "Cocok dihubungi saat tinggi air naik cepat dan butuh koordinasi wilayah.",
     badgeClass: "bg-blue-100 text-blue-700",
     buttonClass: "bg-blue-600 hover:bg-blue-700",
   },
-  Basarnas: {
+  SAR: {
     scope: "Pencarian dan penyelamatan korban pada kondisi arus/akses berbahaya.",
     response: "Prioritas tinggi untuk kondisi kritis",
     note: "Hubungi jika ada korban terjebak, hanyut, atau butuh rescue segera.",
     badgeClass: "bg-amber-100 text-amber-700",
     buttonClass: "bg-amber-600 hover:bg-amber-700",
   },
-  Ambulans: {
+  AMBULANCE: {
     scope: "Pertolongan medis darurat untuk korban luka, sesak, atau kondisi gawat.",
     response: "Secepat mungkin sesuai antrean darurat",
     note: "Sampaikan kondisi pasien, usia, gejala utama, dan akses kendaraan.",
     badgeClass: "bg-rose-100 text-rose-700",
     buttonClass: "bg-rose-600 hover:bg-rose-700",
+  },
+  POLICE: {
+    scope: "Pengamanan lokasi, pengaturan lalu lintas, dan dukungan evakuasi.",
+    response: "Sesuai prioritas kejadian lapangan",
+    note: "Hubungi jika perlu pengamanan area, rekayasa lalu lintas, atau dukungan keamanan.",
+    badgeClass: "bg-indigo-100 text-indigo-700",
+    buttonClass: "bg-indigo-600 hover:bg-indigo-700",
+  },
+  HOSPITAL: {
+    scope: "Rujukan medis lanjutan dan penanganan kegawatdaruratan fasilitas kesehatan.",
+    response: "Bergantung kapasitas rumah sakit",
+    note: "Hubungi untuk koordinasi rujukan pasien banjir dan ketersediaan layanan.",
+    badgeClass: "bg-teal-100 text-teal-700",
+    buttonClass: "bg-teal-600 hover:bg-teal-700",
+  },
+  OTHER: {
+    scope: "Bantuan darurat umum sesuai kebutuhan lokal.",
+    response: "Bervariasi",
+    note: "Pastikan jelaskan kebutuhan dan lokasi secara ringkas.",
+    badgeClass: "bg-slate-100 text-slate-700",
+    buttonClass: "bg-slate-700 hover:bg-slate-800",
   },
 };
 
@@ -49,6 +80,33 @@ const quickActions = [
 ];
 
 export default function UserEmergencyPage() {
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContactItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadContacts = async () => {
+      try {
+        const response = await api.get("/emergency-contacts");
+        const rows = (response.data?.data ?? []) as EmergencyContactItem[];
+
+        if (!cancelled) {
+          setEmergencyContacts(rows);
+        }
+      } catch {
+        if (!cancelled) {
+          setEmergencyContacts([]);
+        }
+      }
+    };
+
+    void loadContacts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <section className="rounded-2xl border border-rose-100 bg-linear-to-br from-rose-50 via-white to-blue-50 p-6 shadow-sm">
@@ -89,13 +147,13 @@ export default function UserEmergencyPage() {
 
         <div className="grid gap-4 md:grid-cols-3">
           {emergencyContacts.map((contact) => {
-            const meta = emergencyMeta[contact.name];
+            const meta = emergencyMeta[contact.category] ?? emergencyMeta.OTHER;
 
             return (
-              <Card key={contact.name} className="h-full border-slate-200 bg-white">
+              <Card key={contact.id} className="h-full border-slate-200 bg-white">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-lg font-semibold text-slate-900">{contact.name}</h3>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${meta?.badgeClass ?? "bg-slate-100 text-slate-700"}`}>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${meta.badgeClass}`}>
                     Prioritas
                   </span>
                 </div>
@@ -105,26 +163,30 @@ export default function UserEmergencyPage() {
 
                 <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                   <p className="font-semibold text-slate-900">Fokus layanan</p>
-                  <p className="mt-1 leading-relaxed">{meta?.scope ?? "Respon darurat"}</p>
+                  <p className="mt-1 leading-relaxed">{meta.scope}</p>
 
                   <p className="mt-2 font-semibold text-slate-900">Estimasi respons</p>
-                  <p className="mt-1">{meta?.response ?? "Secepat mungkin"}</p>
+                  <p className="mt-1">{meta.response}</p>
                 </div>
 
                 <a
                   href={`tel:${contact.phone}`}
-                  className={`mt-4 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors ${meta?.buttonClass ?? "bg-blue-600 hover:bg-blue-700"}`}
+                  className={`mt-4 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-colors ${meta.buttonClass}`}
                 >
                   Hubungi {contact.phone}
                 </a>
 
-                <p className="mt-3 text-xs leading-relaxed text-slate-500">
-                  {meta?.note ?? "Sampaikan lokasi, jumlah korban, dan kondisi akses secara singkat."}
-                </p>
+                <p className="mt-3 text-xs leading-relaxed text-slate-500">{meta.note}</p>
               </Card>
             );
           })}
         </div>
+
+        {emergencyContacts.length === 0 && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Data kontak darurat belum tersedia dari backend.
+          </div>
+        )}
       </section>
 
       <section className="mt-5 grid gap-4 lg:grid-cols-3">
