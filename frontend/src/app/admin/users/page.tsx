@@ -21,7 +21,7 @@ const emptyUserForm: UserFormState = {
   email: "",
   whatsappNumber: "",
   password: "",
-  role: "operator",
+  role: "user",
   institution: "",
 };
 
@@ -31,15 +31,15 @@ interface ApiUser {
   email: string;
   phone?: string | null;
   institution?: string | null;
-  role: "SUPER_ADMIN" | "ADMIN" | "FIELD_OFFICER" | "USER" | string;
+  role: "ADMIN" | "USER" | string;
 }
 
 function mapRole(role: ApiUser["role"]): UserRole {
   const normalized = role.toUpperCase();
-  if (normalized === "ADMIN" || normalized === "SUPER_ADMIN") {
+  if (normalized === "ADMIN") {
     return "admin";
   }
-  return "operator";
+  return "user";
 }
 
 function toApiRole(role: UserRole): "ADMIN" | "USER" {
@@ -82,7 +82,7 @@ export default function AdminUsersPage() {
   }, []);
 
   const adminCount = useMemo(() => users.filter((user) => user.role === "admin").length, [users]);
-  const operatorCount = useMemo(() => users.filter((user) => user.role === "operator").length, [users]);
+  const userCount = useMemo(() => users.filter((user) => user.role === "user").length, [users]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -159,7 +159,7 @@ export default function AdminUsersPage() {
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1.5">
             <h1 className="text-2xl font-bold tracking-tight">Manajemen Pengguna</h1>
-            <p className="max-w-2xl text-sm text-blue-50/95">Kelola akses petugas dengan role-based access control (RBAC).</p>
+            <p className="max-w-2xl text-sm text-blue-50/95">Kelola akses akun admin dan user dengan role-based access control (RBAC).</p>
           </div>
           <Button onClick={openCreate} className="bg-white text-blue-700 hover:bg-blue-50">
             Tambah User
@@ -179,9 +179,9 @@ export default function AdminUsersPage() {
           <p className="text-xs text-slate-500">Akses penuh sistem</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
-          <p className="text-sm text-slate-500">Role Operator</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-600">{operatorCount}</p>
-          <p className="text-xs text-slate-500">Monitoring operasional lapangan</p>
+          <p className="text-sm text-slate-500">Role User</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600">{userCount}</p>
+          <p className="text-xs text-slate-500">Akses dashboard pengguna</p>
         </Card>
       </div>
 
@@ -219,7 +219,7 @@ export default function AdminUsersPage() {
                       user.role === "admin" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
                     }`}
                   >
-                    {user.role === "admin" ? "Admin" : "Operator"}
+                    {user.role === "admin" ? "Admin" : "User"}
                   </span>
                 </td>
                 <td className="py-3">
@@ -303,14 +303,14 @@ export default function AdminUsersPage() {
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             >
               <option value="admin">Admin</option>
-              <option value="operator">Operator</option>
+              <option value="user">User</option>
             </select>
           </label>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
             <p className="font-semibold text-slate-700">Hak Akses:</p>
             <p>Admin: akses penuh, termasuk threshold, hapus data, dan kelola pengguna.</p>
-            <p>Operator: memantau dashboard, kirim peringatan manual, dan unduh laporan bulanan.</p>
+            <p>User: memantau dashboard pengguna, notifikasi, dan informasi darurat.</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
