@@ -1,12 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
-import {
-  AlertSeverity,
-  UserRole,
-} from '@prisma/client';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { AlertSeverity, UserRole } from '@prisma/client';
 import { FirebaseService } from '../common/firebase/firebase.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -51,7 +44,8 @@ export class AlertsService {
 
   async getHistory(page = 1, limit = 10) {
     const safePage = Number.isNaN(page) || page < 1 ? 1 : page;
-    const safeLimit = Number.isNaN(limit) || limit < 1 ? 10 : Math.min(limit, 100);
+    const safeLimit =
+      Number.isNaN(limit) || limit < 1 ? 10 : Math.min(limit, 100);
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.alert.findMany({
@@ -74,8 +68,15 @@ export class AlertsService {
   }
 
   async broadcast(payload: BroadcastPayload) {
-    if (!payload.title || !payload.message || !payload.severity || !payload.channels?.length) {
-      throw new BadRequestException('title, message, severity, dan channels wajib diisi.');
+    if (
+      !payload.title ||
+      !payload.message ||
+      !payload.severity ||
+      !payload.channels?.length
+    ) {
+      throw new BadRequestException(
+        'title, message, severity, dan channels wajib diisi.',
+      );
     }
 
     const sender =
@@ -111,7 +112,9 @@ export class AlertsService {
       ['push', 'fcm', 'webpush', 'mobile'].includes(channel.toLowerCase()),
     );
 
-    const pushTopic = shouldSendPush ? this.buildPushTopic(payload.targetArea) : null;
+    const pushTopic = shouldSendPush
+      ? this.buildPushTopic(payload.targetArea)
+      : null;
     let pushMessageId: string | null = null;
     let pushError: string | null = null;
 
@@ -129,7 +132,9 @@ export class AlertsService {
         });
       } catch (error) {
         pushError = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Failed to send FCM push for alert ${alert.id}: ${pushError}`);
+        this.logger.error(
+          `Failed to send FCM push for alert ${alert.id}: ${pushError}`,
+        );
       }
     }
 
@@ -162,11 +167,16 @@ export class AlertsService {
     }
 
     if (!this.firebaseService.isEnabled()) {
-      throw new BadRequestException('Firebase belum terkonfigurasi di backend.');
+      throw new BadRequestException(
+        'Firebase belum terkonfigurasi di backend.',
+      );
     }
 
     const topic = this.buildPushTopic(targetArea);
-    const response = await this.firebaseService.subscribeTokenToTopic(token.trim(), topic);
+    const response = await this.firebaseService.subscribeTokenToTopic(
+      token.trim(),
+      topic,
+    );
 
     return {
       topic,

@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { AlertSeverity } from '@prisma/client';
 import { ok } from '../common/api-response';
 import { AlertsService } from './alerts.service';
@@ -40,13 +34,22 @@ export class AlertsController {
 
   @Post('subscribe')
   async subscribe(@Body() body: SubscribeRequest) {
-    const data = await this.alertsService.subscribePushToken(body.token, body.targetArea);
+    const data = await this.alertsService.subscribePushToken(
+      body.token,
+      body.targetArea,
+    );
     return ok(data);
   }
 
   @Get('history')
-  async getHistory(@Query('page') page?: string, @Query('limit') limit?: string) {
-    const data = await this.alertsService.getHistory(Number(page), Number(limit));
+  async getHistory(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const data = await this.alertsService.getHistory(
+      Number(page),
+      Number(limit),
+    );
     return ok(data);
   }
 }

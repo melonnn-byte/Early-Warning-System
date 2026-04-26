@@ -66,7 +66,9 @@ export class WaterLevelsService {
     });
 
     if (!latest) {
-      throw new NotFoundException('Data water level belum tersedia untuk sensor ini.');
+      throw new NotFoundException(
+        'Data water level belum tersedia untuk sensor ini.',
+      );
     }
 
     return {
@@ -84,18 +86,26 @@ export class WaterLevelsService {
 
   async getHistory(query: HistoryQuery) {
     if (!query.sensorId || !query.startDate || !query.endDate) {
-      throw new BadRequestException('sensorId, startDate, dan endDate wajib diisi.');
+      throw new BadRequestException(
+        'sensorId, startDate, dan endDate wajib diisi.',
+      );
     }
 
     const startDate = new Date(query.startDate);
     const endDate = new Date(query.endDate);
 
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      throw new BadRequestException('Format tanggal tidak valid. Gunakan ISO 8601.');
+      throw new BadRequestException(
+        'Format tanggal tidak valid. Gunakan ISO 8601.',
+      );
     }
 
     const sensor = await this.prisma.sensor.findFirst({
-      where: { sensorId: query.sensorId, type: SensorType.WATER_LEVEL, isActive: true },
+      where: {
+        sensorId: query.sensorId,
+        type: SensorType.WATER_LEVEL,
+        isActive: true,
+      },
     });
 
     if (!sensor) {

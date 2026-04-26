@@ -8,13 +8,14 @@ import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserRole } from "@/types/user";
 
-const getRedirectPathByRole = (role: UserRole) => (role === "admin" ? "/admin/dashboard" : "/user/dashboard");
+const getRedirectPathByRole = (role: UserRole | string) => 
+  (role === "ADMIN" || role === "admin" ? "/admin/dashboard" : "/user/dashboard");
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, dummyAccounts } = useAuth();
-  const adminAccount = dummyAccounts.find((account) => account.role === "admin");
-  const userAccount = dummyAccounts.find((account) => account.role === "operator") ?? dummyAccounts[0];
+  // dummyAccounts sudah dihapus dari useAuth
+  const { login, loginWithGoogle } = useAuth(); 
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +33,9 @@ export default function LoginPage() {
     setError(null);
     setSuccess(null);
 
-    const result = login(email, password);
+    // Tambahkan await karena sekarang login memanggil API API
+    const result = await login(email, password);
+    
     if (!result.ok) {
       setError(result.message);
       setIsSubmitting(false);
@@ -41,46 +44,57 @@ export default function LoginPage() {
 
     setSuccess("Login berhasil. Mengalihkan ke dashboard...");
     setTimeout(() => {
-      router.push(getRedirectPathByRole(result.user.role));
+      // Pastikan result.user ada sebelum dialihkan
+      if (result.user) {
+        router.push(getRedirectPathByRole(result.user.role));
+      }
     }, 700);
   };
 
-  const onGoogleLogin = () => {
+  const onGoogleLogin = async () => {
     setError(null);
     setSuccess(null);
+    setIsSubmitting(true);
 
-    const googleDemoAccount = dummyAccounts.find((account) => account.role === "admin") ?? dummyAccounts[0];
-    const result = login(googleDemoAccount.email, googleDemoAccount.password);
+    const result = await loginWithGoogle();
+
     if (!result.ok) {
-      setError("Google login demo gagal. Coba lagi.");
+      setError(result.message);
+      setIsSubmitting(false);
       return;
     }
 
-    setSuccess("Login Google (demo) berhasil. Mengalihkan ke dashboard...");
+    setSuccess("Login dengan Google berhasil. Mengalihkan ke dashboard...");
     setTimeout(() => {
-      router.push(getRedirectPathByRole(result.user.role));
-    }, 600);
+      if (result.user) {
+        router.push(getRedirectPathByRole(result.user.role));
+      }
+    }, 700);
   };
 
-  const onQuickLogin = (role: UserRole) => {
-    const account = role === "admin" ? adminAccount : userAccount;
-    if (!account) {
-      setError(`Akun ${role} tidak tersedia.`);
-      return;
-    }
-
+  const onQuickLogin = async (role: "admin" | "operator") => {
     setError(null);
     setSuccess(null);
+    setIsSubmitting(true);
 
-    const result = login(account.email, account.password);
+    // Menggunakan akun default yang di-generate oleh backend (ensureDefaultAdmin)
+    // Untuk operator, asumsikan email ini sudah Anda daftarkan di halaman Register
+    const testEmail = role === "admin" ? "admin@ews.com" : "user@ews.com";
+    const testPassword = role === "admin" ? "admin123" : "user123";
+
+    const result = await login(testEmail, testPassword);
+    
     if (!result.ok) {
-      setError(`Login cepat ${role} gagal. Coba lagi.`);
+      setError(`Login cepat ${role} gagal: ${result.message}`);
+      setIsSubmitting(false);
       return;
     }
 
     setSuccess(`Login cepat ${role} berhasil. Mengalihkan...`);
     setTimeout(() => {
-      router.push(getRedirectPathByRole(result.user.role));
+      if (result.user) {
+        router.push(getRedirectPathByRole(result.user.role));
+      }
     }, 450);
   };
 
@@ -124,30 +138,31 @@ export default function LoginPage() {
           <h2 className="text-2xl font-bold text-slate-900">Login</h2>
           <p className="mt-2 text-sm text-slate-600">Masuk ke akun kamu untuk mengakses layanan EWS.</p>
 
+          {/* Tombol Quick Login dipertahankan untuk testing, tapi mengarah ke API sungguhan */}
           <div className="mt-5 flex justify-center gap-2">
               <button
                 type="button"
                 onClick={() => onQuickLogin("admin")}
-                suppressHydrationWarning
-                className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                disabled={isSubmitting}
+                className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
               >
-                Admin
+                Admin Test
               </button>
               <button
                 type="button"
                 onClick={() => onQuickLogin("operator")}
-                suppressHydrationWarning
-                className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100"
+                disabled={isSubmitting}
+                className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100 disabled:opacity-50"
               >
-                User
+                User Test
               </button>
           </div>
 
           <button
             type="button"
             onClick={onGoogleLogin}
-            suppressHydrationWarning
-            className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            disabled={isSubmitting}
+            className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
           >
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
               <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.5-5.5 3.5-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 2.9 14.7 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.8 0 9.6-4.1 9.6-9.8 0-.7-.1-1.3-.2-2H12z" />
@@ -171,7 +186,6 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                suppressHydrationWarning
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 placeholder="nama@email.com"
                 required
@@ -187,19 +201,18 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                suppressHydrationWarning
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 placeholder="••••••••"
                 required
               />
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting} suppressHydrationWarning>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
               {isSubmitting ? "Memproses..." : "Masuk"}
             </Button>
 
-            {error && <p className="text-sm font-medium text-rose-600">{error}</p>}
-            {success && <p className="text-sm font-medium text-emerald-600">{success}</p>}
+            {error && <p className="text-sm font-medium text-rose-600 text-center">{error}</p>}
+            {success && <p className="text-sm font-medium text-emerald-600 text-center">{success}</p>}
           </form>
 
           <p className="mt-5 text-center text-sm text-slate-600">

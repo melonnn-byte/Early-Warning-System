@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "@/lib/firebase";
 import type { AppUser } from "@/types/user";
 import api from "@/lib/api"; 
 
@@ -54,6 +56,36 @@ export function useAuth() {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      // Sign in with Google popup
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Get Firebase ID token
+      const idToken = await user.getIdToken();
+
+      // Send to backend for verification and JWT generation
+      const response = await api.post("/auth/google-login", { idToken });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const { accessToken, refreshToken, user: userData } = response.data.data;
+
+      // Simpan di Local Storage
+      localStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
+      localStorage.setItem(REFRESH_TOKEN_KEY, String(refreshToken));
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+
+      setUser(userData as AppUser);
+      return { ok: true as const, user: userData as AppUser };
+
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Google login gagal.";
+      return { ok: false as const, message: errorMessage };
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       // (Opsional) Panggil API logout agar dicatat di server
@@ -89,9 +121,10 @@ export function useAuth() {
       loading,
       isAuthenticated: Boolean(user),
       login,
+      loginWithGoogle,
       logout,
       updateProfile,
     }),
-    [user, loading, login, logout, updateProfile],
+    [user, loading, login, loginWithGoogle, logout, updateProfile],
   );
 }

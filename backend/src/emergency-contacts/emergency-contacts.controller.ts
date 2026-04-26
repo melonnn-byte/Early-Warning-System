@@ -1,13 +1,12 @@
-import {
-  Controller,
-  Get,
-} from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ok } from '../common/api-response';
 import { EmergencyContactsService } from './emergency-contacts.service';
 
 @Controller('emergency-contacts')
 export class EmergencyContactsController {
-  constructor(private readonly emergencyContactsService: EmergencyContactsService) {}
+  constructor(
+    private readonly emergencyContactsService: EmergencyContactsService,
+  ) {}
 
   @Get()
   async findAll() {

@@ -1,7 +1,4 @@
-import {
-  Controller,
-  Get,
-} from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { ok } from '../common/api-response';
 import { RainfallService } from './rainfall.service';
 

@@ -1,9 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Get, Put } from '@nestjs/common';
 import { ok } from '../common/api-response';
 import { ThresholdsService } from './thresholds.service';
 

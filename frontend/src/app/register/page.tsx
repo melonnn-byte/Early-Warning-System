@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import api from "@/lib/api"; // Wajib ditambahkan untuk memanggil backend
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const onSubmit = (event: FormEvent) => {
+  const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setMessage(null);
@@ -38,21 +39,32 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setMessage("Pendaftaran berhasil dikirim (mode demo). Silakan login untuk melanjutkan.");
+
+    try {
+      // Mengirim request ke backend (institution tidak dikirim karena belum ada di DB)
+      await api.post("/auth/register", {
+        name,
+        email,
+        password,
+      });
+
+      setMessage("Pendaftaran berhasil! Mengalihkan ke halaman login...");
       setTimeout(() => {
         router.push("/login");
-      }, 900);
-    }, 600);
+      }, 1500);
+    } catch (err: unknown) {
+      // Menangkap pesan error dari backend (misal: "Email sudah terdaftar")
+      const errorMessage =
+        err instanceof Error ? err.message : "Terjadi kesalahan saat mendaftar.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const onGoogleRegister = () => {
     setError(null);
-    setMessage("Pendaftaran dengan Google (demo) berhasil. Mengalihkan ke halaman login...");
-    setTimeout(() => {
-      router.push("/login");
-    }, 700);
+    setMessage("Fitur pendaftaran dengan Google sedang dalam pengembangan.");
   };
 
   return (
@@ -75,7 +87,7 @@ export default function RegisterPage() {
           </p>
 
           <ul className="mt-6 space-y-3 text-sm text-slate-700">
-            <li className="rounded-lg border border-blue-100 bg-sky-50/70 px-3 py-2">✅ Aktivasi akun cepat (mode demo)</li>
+            <li className="rounded-lg border border-blue-100 bg-sky-50/70 px-3 py-2">✅ Aktivasi akun cepat</li>
             <li className="rounded-lg border border-blue-100 bg-sky-50/70 px-3 py-2">✅ Akses dashboard real-time</li>
             <li className="rounded-lg border border-blue-100 bg-sky-50/70 px-3 py-2">✅ Integrasi notifikasi peringatan dini</li>
           </ul>
@@ -182,8 +194,8 @@ export default function RegisterPage() {
               {isSubmitting ? "Memproses..." : "Daftar"}
             </Button>
 
-            {error && <p className="text-sm font-medium text-rose-600">{error}</p>}
-            {message && <p className="text-sm font-medium text-emerald-600">{message}</p>}
+            {error && <p className="text-sm font-medium text-rose-600 text-center">{error}</p>}
+            {message && <p className="text-sm font-medium text-emerald-600 text-center">{message}</p>}
           </form>
 
           <p className="mt-5 text-center text-sm text-slate-600">

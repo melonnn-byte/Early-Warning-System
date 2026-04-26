@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -22,12 +18,16 @@ export class FirebaseService implements OnModuleInit {
     const credentialPath = this.resolveServiceAccountPath();
 
     if (!credentialPath) {
-      this.logger.warn('Firebase not initialized because service account path is not configured.');
+      this.logger.warn(
+        'Firebase not initialized because service account path is not configured.',
+      );
       return;
     }
 
     if (!fs.existsSync(credentialPath)) {
-      this.logger.warn(`Firebase not initialized because service account file is missing at: ${credentialPath}`);
+      this.logger.warn(
+        `Firebase not initialized because service account file is missing at: ${credentialPath}`,
+      );
       return;
     }
 
@@ -53,13 +53,19 @@ export class FirebaseService implements OnModuleInit {
     return this.app !== null;
   }
 
-  async sendToTopic(topic: string, payload: PushMessageInput): Promise<string | null> {
+  async sendToTopic(
+    topic: string,
+    payload: PushMessageInput,
+  ): Promise<string | null> {
     if (!this.app) {
       return null;
     }
 
     const data = Object.fromEntries(
-      Object.entries(payload.data ?? {}).map(([key, value]) => [key, value == null ? '' : String(value)]),
+      Object.entries(payload.data ?? {}).map(([key, value]) => [
+        key,
+        value == null ? '' : String(value),
+      ]),
     );
 
     const message: admin.messaging.Message = {
@@ -97,7 +103,10 @@ export class FirebaseService implements OnModuleInit {
 
   private resolveServiceAccountPath(): string | null {
     const configuredPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH?.trim();
-    const fallbackPath = path.resolve(process.cwd(), 'config/firebase-service-account.json');
+    const fallbackPath = path.resolve(
+      process.cwd(),
+      'config/firebase-service-account.json',
+    );
 
     if (!configuredPath) {
       return fallbackPath;
