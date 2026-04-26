@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
 import type { Sensor } from "@/types/sensor";
 import type { LiveWaterLevel, WaterLevelPoint } from "@/types/water-level";
-import { getStatusFromLevel } from "@/lib/utils";
 
 interface UseWaterLevelOptions {
   sensorId?: string;
@@ -140,7 +139,6 @@ export function useWaterLevel(options: UseWaterLevelOptions = {}) {
     const activeId = sensorId && latestBySensor[sensorId] ? sensorId : sensorsSnapshot[0]?.id;
 
     if (!activeId) {
-      setHistoryBySensor({});
       return;
     }
 
