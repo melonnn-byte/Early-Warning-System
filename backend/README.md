@@ -97,8 +97,11 @@ Akun hasil seed untuk login cepat:
 
 - `superadmin@ews.com` / `Superadmin123!`
 - `admin@ews.com` / `Admin123!`
+- `admin2@ews.com` / `AdminOps123!`
+- `officer@ews.com` / `Field12345!`
 - `user1@ews.com` / `User12345!`
 - `user2@ews.com` / `User12345!`
+- `user3@ews.com` / `User12345!`
 
 ## 5) Menjalankan Aplikasi
 
