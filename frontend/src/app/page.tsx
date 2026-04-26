@@ -97,7 +97,7 @@ const photoItems = [
     src: "https://images.unsplash.com/photo-1570288685369-f7305163d0e3?auto=format&fit=crop&w=1400&q=80",
   },
   {
-    title: "Tim Operator & Admin",
+    title: "Tim User & Admin",
     caption: "Admin mengelola sensor, memvalidasi alert, dan mengoordinasikan informasi ke publik.",
     src: "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&w=1400&q=80",
   },
