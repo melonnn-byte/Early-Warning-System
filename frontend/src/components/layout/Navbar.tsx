@@ -19,6 +19,7 @@ const userNavLinks: NavbarItem[] = [
   { href: "/user/map", label: "Peta Sensor" },
   { href: "/user/emergency", label: "Kontak Darurat" },
   { href: "/user/education", label: "Panduan" },
+  { href: "/user/faq", label: "FAQ" },
 ];
 
 export function Navbar() {
@@ -246,10 +247,10 @@ export function Navbar() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => navigateTo("/user/settings")}
+                        onClick={() => navigateTo("/user/faq")}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
                       >
-                        Pengaturan
+                        FAQ Bantuan
                       </button>
                     </div>
 
