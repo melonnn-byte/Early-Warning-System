@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider, requestForToken } from "@/lib/firebase"; // Pastikan requestForToken di-import
 import type { AppUser, BackendAuthUser } from "@/types/user";
 import api from "@/lib/api";
 
@@ -65,6 +65,22 @@ export function useAuth() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // --- HELPER UNTUK MENGIRIM TOKEN FCM KE BACKEND ---
+  const handlePushSubscription = async () => {
+    try {
+      // Meminta izin dan mengambil token FCM dari browser pengguna
+      const fcmToken = await requestForToken();
+      
+      if (fcmToken) {
+        // Mengirim token ke endpoint yang sudah disiapkan di alerts.controller.ts
+        await api.post("/alerts/subscribe", { token: fcmToken });
+        console.log("Berhasil mendaftarkan perangkat ke layanan Push Notification EWS.");
+      }
+    } catch (error) {
+      console.error("Gagal melakukan push subscription:", error);
+    }
+  };
+
   // Hydrate local state lalu validasi sesi ke backend agar data user selalu real.
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +118,9 @@ export function useAuth() {
         if (!cancelled) {
           setUser(normalizedUser);
           localStorage.setItem(AUTH_USER_KEY, JSON.stringify(normalizedUser));
+          
+          // Minta izin notifikasi jika sesi valid saat halaman dimuat
+          handlePushSubscription();
         }
       } catch {
         clearPersistedAuth();
@@ -139,6 +158,10 @@ export function useAuth() {
       persistAuth(accessToken, refreshToken, normalizedUser);
 
       setUser(normalizedUser);
+      
+      // Setelah berhasil login manual, minta izin notifikasi
+      handlePushSubscription();
+
       return { ok: true as const, user: normalizedUser };
 
     } catch (error: unknown) {
@@ -171,6 +194,10 @@ export function useAuth() {
       persistAuth(accessToken, refreshToken, normalizedUser);
 
       setUser(normalizedUser);
+      
+      // Setelah berhasil login Google, minta izin notifikasi
+      handlePushSubscription();
+
       return { ok: true as const, user: normalizedUser };
 
     } catch (error: unknown) {
