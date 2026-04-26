@@ -1,8 +1,12 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
 import { AdminGoogleSensorMap } from "@/components/maps/AdminGoogleSensorMap";
 import { Card } from "@/components/ui/Card";
+import type { Sensor } from "@/types/sensor";
+import { getStatusFromLevel } from "@/lib/utils";
 import { formatTimestamp } from "@/lib/utils";
-import { mockActivityLogs, mockSensors, mockWaterLevelHistory } from "@/constants";
+import api from "@/lib/api";
 
 function StatIcon({ children, colorClass }: { children: ReactNode; colorClass: string }) {
   return <span className={`inline-flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-md ${colorClass}`}>{children}</span>;
@@ -13,23 +17,117 @@ function CardTitleIcon({ children }: { children: ReactNode }) {
 }
 
 export default function AdminDashboardPage() {
-  const online = mockSensors.filter((sensor) => sensor.connectivity === "online").length;
-  const offline = mockSensors.length - online;
-  const warningCount = mockSensors.filter((sensor) => sensor.status === "alert").length;
-  const dangerCount = mockSensors.filter((sensor) => sensor.status === "danger").length;
-  const maxLevelCm = Math.max(...mockSensors.map((sensor) => sensor.lastLevelCm));
-  const globalStatus = mockSensors.some((sensor) => sensor.status === "danger")
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activityLogs, setActivityLogs] = useState<Array<{ id: string; time: string; event: string; severity: "info" | "warning" | "critical" }>>([]);
+  const [avgRainfall, setAvgRainfall] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      setErrorMessage(null);
+      try {
+        const [sensorResp, waterResp, rainResp, historyResp] = await Promise.all([
+          api.get("/sensors"),
+          api.get("/water-levels/current"),
+          api.get("/rainfall/current"),
+          api.get("/alerts/history", { params: { page: 1, limit: 10 } }),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const sensorRows = (sensorResp.data?.data ?? []) as Array<{
+          id: string;
+          sensorId: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+          batteryLevel: number | null;
+          connectivity: "ONLINE" | "OFFLINE" | "MAINTENANCE";
+          lastActiveAt: string | null;
+        }>;
+        const waterRows = (waterResp.data?.data ?? []) as Array<{ sensorId: string; waterLevel: number; recordedAt: string }>;
+        const rainRows = (rainResp.data?.data ?? []) as Array<{ rainfall: number }>;
+        const alertRows = (historyResp.data?.data?.items ?? []) as Array<{
+          id: string;
+          sentAt: string;
+          title: string;
+          severity: "INFO" | "WARNING" | "DANGER";
+        }>;
+
+        const waterMap = new Map(waterRows.map((row) => [row.sensorId, row]));
+        const mappedSensors: Sensor[] = sensorRows.map((item) => {
+          const water = waterMap.get(item.sensorId);
+          const level = water?.waterLevel ?? 0;
+          return {
+            id: item.id,
+            name: item.name,
+            riverName: item.name,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            connectivity: item.connectivity === "ONLINE" ? "online" : "offline",
+            batteryPercent: item.batteryLevel ?? 0,
+            lastLevelCm: level,
+            status: getStatusFromLevel(level),
+            updatedAt: water?.recordedAt ?? item.lastActiveAt ?? new Date().toISOString(),
+          };
+        });
+
+        const logs: Array<{
+          id: string;
+          time: string;
+          event: string;
+          severity: "info" | "warning" | "critical";
+        }> = alertRows.map((item) => ({
+          id: item.id,
+          time: new Date(item.sentAt).toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
+          event: item.title,
+          severity: item.severity === "DANGER" ? "critical" : item.severity === "WARNING" ? "warning" : "info",
+        }));
+
+        setSensors(mappedSensors);
+        setActivityLogs(logs);
+        setAvgRainfall(
+          rainRows.length === 0
+            ? 0
+            : Math.round((rainRows.reduce((sum, row) => sum + row.rainfall, 0) / rainRows.length) * 10) / 10,
+        );
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Gagal memuat dashboard admin.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadData();
+    const timer = window.setInterval(() => {
+      void loadData();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const online = sensors.filter((sensor) => sensor.connectivity === "online").length;
+  const offline = sensors.length - online;
+  const warningCount = sensors.filter((sensor) => sensor.status === "alert").length;
+  const dangerCount = sensors.filter((sensor) => sensor.status === "danger").length;
+  const maxLevelCm = sensors.length ? Math.max(...sensors.map((sensor) => sensor.lastLevelCm)) : 0;
+  const globalStatus = sensors.some((sensor) => sensor.status === "danger")
     ? "Bahaya"
-    : mockSensors.some((sensor) => sensor.status === "alert")
+    : sensors.some((sensor) => sensor.status === "alert")
       ? "Waspada"
       : "Aman";
-
-  const avgRainfall =
-    Math.round(
-      (mockWaterLevelHistory.slice(-12).reduce((sum, point) => sum + point.rainfallMm, 0) /
-        Math.max(mockWaterLevelHistory.slice(-12).length, 1)) *
-        10,
-    ) / 10;
 
   const severityClass: Record<"info" | "warning" | "critical", string> = {
     info: "bg-blue-100 text-blue-700",
@@ -47,7 +145,7 @@ export default function AdminDashboardPage() {
     {
       title: "Sensor Aktif",
       value: online,
-      sub: `Total sensor: ${mockSensors.length}`,
+      sub: `Total sensor: ${sensors.length}`,
       color: "from-blue-500 to-indigo-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -193,11 +291,11 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-slate-500">Klik titik sensor untuk melihat lokasi, ketinggian air, dan status baterai.</p>
           </div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-            Total {mockSensors.length} Sensor
+            Total {sensors.length} Sensor
           </span>
         </div>
 
-        <AdminGoogleSensorMap sensors={mockSensors} />
+        <AdminGoogleSensorMap sensors={sensors} />
       </Card>
 
       <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
@@ -221,7 +319,7 @@ export default function AdminDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {mockActivityLogs.map((item) => (
+              {activityLogs.map((item) => (
                 <tr key={item.id} className="border-b border-slate-100 align-top">
                   <td className="py-3 font-medium text-slate-700">{item.time}</td>
                   <td className="py-3 text-slate-700">{item.event}</td>
@@ -236,6 +334,9 @@ export default function AdminDashboardPage() {
           </table>
         </div>
       </Card>
+
+      {loading && <p className="text-sm text-slate-500">Memuat data dashboard...</p>}
+      {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
     </main>
   );
 }
