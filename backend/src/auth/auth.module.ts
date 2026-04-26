@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { JWT_SECRET } from './auth.constants';
 import { PrismaModule } from '../prisma/prisma.module'; // Pastikan path sesuai
 
 @Module({
@@ -11,7 +12,7 @@ import { PrismaModule } from '../prisma/prisma.module'; // Pastikan path sesuai
     PrismaModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'rahasia-super-kuat-ews-123',
+      secret: JWT_SECRET,
       signOptions: { expiresIn: '15m' }, // Masa berlaku Access Token
     }),
   ],

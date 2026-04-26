@@ -1,9 +1,12 @@
 import {
-  Injectable,
+  CanActivate,
   ExecutionContext,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
+import * as jwt from 'jsonwebtoken';
+import { JWT_SECRET } from './auth.constants';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface AuthUser {
   id: string;
@@ -12,21 +15,49 @@ interface AuthUser {
 }
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  canActivate(context: ExecutionContext) {
-    return super.canActivate(context);
-  }
+export class JwtAuthGuard implements CanActivate {
+  constructor(private readonly prisma: PrismaService) {}
 
-  // 1. Parameter '_info' dan seterusnya dihapus karena tidak dipakai
-  handleRequest<TUser = AuthUser>(err: unknown, user: TUser): TUser {
-    if (err || !user) {
-      // 2. Pastikan yang dilempar (throw) SELALU berupa instance dari Error
-      if (err instanceof Error) {
-        throw err;
-      }
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<{
+      headers: { authorization?: string };
+      user?: AuthUser;
+    }>();
+
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Silakan login terlebih dahulu.');
     }
 
-    return user;
+    const token = authHeader.slice(7);
+
+    let payload: { sub: string; email: string; role: string };
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as {
+        sub: string;
+        email: string;
+        role: string;
+      };
+      payload = decoded;
+    } catch {
+      throw new UnauthorizedException('Silakan login terlebih dahulu.');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Akses ditolak atau user tidak aktif.');
+    }
+
+    request.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    return true;
   }
 }

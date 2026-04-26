@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { JWT_SECRET } from './auth.constants';
 import { PrismaService } from '../prisma/prisma.service';
 
 // 1. Definisikan interface agar tidak ada lagi tipe 'any'
@@ -17,8 +18,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // Mengambil token dari header: Authorization: Bearer <token>
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      // Sebaiknya gunakan process.env.JWT_SECRET di production
-      secretOrKey: process.env.JWT_SECRET || 'rahasia-super-kuat-ews-123',
+      secretOrKey: JWT_SECRET,
     });
   }
 

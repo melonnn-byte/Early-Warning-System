@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as admin from 'firebase-admin';
+import { JWT_SECRET } from './auth.constants';
 import { PrismaService } from '../prisma/prisma.service';
 
 interface LoginPayload {
@@ -116,7 +117,7 @@ export class AuthService {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(
         refreshToken,
         {
-          secret: process.env.JWT_SECRET || 'rahasia-super-kuat-ews-123',
+          secret: JWT_SECRET,
         },
       );
 
