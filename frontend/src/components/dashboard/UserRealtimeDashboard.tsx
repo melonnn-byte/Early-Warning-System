@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertBanner } from "@/components/dashboard/AlertBanner";
 import { RainfallCard } from "@/components/dashboard/RainfallCard";
 import { WaterLevelGauge } from "@/components/dashboard/WaterLevelGauge";
 import { WaterLevelChart } from "@/components/charts/WaterLevelChart";
@@ -78,7 +77,7 @@ const statusMeta: Record<
 export function UserRealtimeDashboard({ headline, subtitle, roleLabel }: UserRealtimeDashboardProps) {
   const pathname = usePathname();
   const isUserRoute = pathname.startsWith("/user");
-  const [selectedSensorId, setSelectedSensorId] = useState("SEN-01");
+  const [selectedSensorId, setSelectedSensorId] = useState("");
   const { latest, history, sensorsSnapshot, liveBySensor } = useWaterLevel({ sensorId: selectedSensorId });
 
   const sortedSensors = useMemo(
