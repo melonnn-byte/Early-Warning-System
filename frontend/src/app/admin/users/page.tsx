@@ -1,11 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { AppUser, UserRole } from "@/types/user";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { mockUsers } from "@/constants";
+import api from "@/lib/api";
 
 interface UserFormState {
   name: string;
@@ -13,6 +13,7 @@ interface UserFormState {
   whatsappNumber: string;
   password: string;
   role: UserRole;
+  institution: string;
 }
 
 const emptyUserForm: UserFormState = {
@@ -21,18 +22,72 @@ const emptyUserForm: UserFormState = {
   whatsappNumber: "",
   password: "",
   role: "operator",
+  institution: "",
 };
 
+interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  institution?: string | null;
+  role: "SUPER_ADMIN" | "ADMIN" | "FIELD_OFFICER" | "USER" | string;
+}
+
+function mapRole(role: ApiUser["role"]): UserRole {
+  const normalized = role.toUpperCase();
+  if (normalized === "ADMIN" || normalized === "SUPER_ADMIN") {
+    return "admin";
+  }
+  return "operator";
+}
+
+function toApiRole(role: UserRole): "ADMIN" | "USER" {
+  return role === "admin" ? "ADMIN" : "USER";
+}
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AppUser[]>(mockUsers);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyUserForm);
+
+  const loadUsers = async () => {
+    setErrorMessage(null);
+    try {
+      const response = await api.get("/users");
+      const rows = (response.data?.data ?? []) as ApiUser[];
+      setUsers(
+        rows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          whatsappNumber: row.phone ?? "",
+          institution: row.institution ?? null,
+          role: mapRole(row.role),
+        })),
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data pengguna.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadUsers();
+  }, []);
+
+  const adminCount = useMemo(() => users.filter((user) => user.role === "admin").length, [users]);
+  const operatorCount = useMemo(() => users.filter((user) => user.role === "operator").length, [users]);
 
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyUserForm);
+    setErrorMessage(null);
     setOpen(true);
   };
 
@@ -44,33 +99,57 @@ export default function AdminUsersPage() {
       whatsappNumber: user.whatsappNumber ?? "",
       password: "",
       role: user.role,
+      institution: user.institution ?? "",
     });
+    setErrorMessage(null);
     setOpen(true);
   };
 
-  const deleteUser = (id: string) => {
-    setUsers((prev) => prev.filter((user) => user.id !== id));
-    setSavedMessage("Pengguna berhasil dihapus.");
+  const deleteUser = async (id: string) => {
+    setSavedMessage(null);
+    setErrorMessage(null);
+    try {
+      await api.delete(`/users/${id}`);
+      setSavedMessage("Pengguna berhasil dihapus.");
+      await loadUsers();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus pengguna.");
+    }
   };
 
-  const submitUser = (event: FormEvent) => {
+  const submitUser = async (event: FormEvent) => {
     event.preventDefault();
+    setSavedMessage(null);
+    setErrorMessage(null);
 
-    const nextUser: AppUser = {
-      id: editingId ?? `USR-${String(users.length + 1).padStart(2, "0")}`,
-      name: form.name,
-      email: form.email,
-      whatsappNumber: form.whatsappNumber,
-      role: form.role,
-    };
+    try {
+      if (editingId) {
+        await api.put(`/users/${editingId}`, {
+          name: form.name,
+          email: form.email,
+          phone: form.whatsappNumber,
+          institution: form.institution,
+          role: toApiRole(form.role),
+          ...(form.password ? { password: form.password } : {}),
+        });
+        setSavedMessage("Pengguna berhasil diperbarui.");
+      } else {
+        await api.post("/users", {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          phone: form.whatsappNumber,
+          institution: form.institution,
+          role: toApiRole(form.role),
+        });
+        setSavedMessage("Pengguna baru berhasil ditambahkan.");
+      }
 
-    setUsers((prev) => (editingId ? prev.map((user) => (user.id === editingId ? nextUser : user)) : [nextUser, ...prev]));
-    setSavedMessage(
-      editingId
-        ? "Pengguna berhasil diperbarui. Password baru akan di-hash bcrypt di backend Nest.js."
-        : "Pengguna baru berhasil ditambahkan. Password akan di-hash bcrypt di backend Nest.js.",
-    );
-    setOpen(false);
+      setOpen(false);
+      await loadUsers();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menyimpan data pengguna.");
+    }
   };
 
   return (
@@ -96,17 +175,19 @@ export default function AdminUsersPage() {
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
           <p className="text-sm text-slate-500">Role Admin</p>
-          <p className="mt-1 text-3xl font-bold text-blue-600">{users.filter((user) => user.role === "admin").length}</p>
+          <p className="mt-1 text-3xl font-bold text-blue-600">{adminCount}</p>
           <p className="text-xs text-slate-500">Akses penuh sistem</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
           <p className="text-sm text-slate-500">Role Operator</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-600">{users.filter((user) => user.role === "operator").length}</p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600">{operatorCount}</p>
           <p className="text-xs text-slate-500">Monitoring operasional lapangan</p>
         </Card>
       </div>
 
+      {loading && <p className="text-sm text-slate-500">Memuat data pengguna...</p>}
       {savedMessage && <p className="text-sm font-medium text-emerald-600">{savedMessage}</p>}
+      {errorMessage && <p className="text-sm font-medium text-rose-600">{errorMessage}</p>}
 
       <Card className="overflow-x-auto border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <div className="mb-4 flex items-center justify-between gap-3">
@@ -202,6 +283,16 @@ export default function AdminUsersPage() {
               placeholder={editingId ? "Kosongkan jika tidak diubah" : "Masukkan password"}
             />
             <p className="mt-1 text-xs text-slate-500">Password akan di-enkripsi menggunakan bcrypt di backend Nest.js.</p>
+          </label>
+
+          <label className="block text-sm text-slate-700">
+            Instansi
+            <input
+              value={form.institution}
+              onChange={(event) => setForm((prev) => ({ ...prev, institution: event.target.value }))}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="Contoh: BPBD Kota"
+            />
           </label>
 
           <label className="block text-sm text-slate-700">
