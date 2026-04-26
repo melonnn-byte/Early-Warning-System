@@ -1,30 +1,105 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { formatTimestamp } from "@/lib/utils";
-import {
-  mockNotificationConditions,
-  mockNotificationInbox,
-  type NotificationConditionLevel,
-} from "@/constants";
+import api from "@/lib/api";
+
+type NotificationConditionLevel = "Aman" | "Waspada" | "Bahaya";
 
 const levelBadgeClass: Record<NotificationConditionLevel, string> = {
   Aman: "bg-emerald-100 text-emerald-700",
   Waspada: "bg-amber-100 text-amber-700",
-  Siaga: "bg-orange-100 text-orange-700",
   Bahaya: "bg-rose-100 text-rose-700",
 };
 
 const levelDotClass: Record<NotificationConditionLevel, string> = {
   Aman: "bg-emerald-500",
   Waspada: "bg-amber-500",
-  Siaga: "bg-orange-500",
   Bahaya: "bg-rose-500",
 };
 
 export default function AdminNotificationsPage() {
-  const unreadCount = mockNotificationInbox.filter((item) => !item.isRead).length;
-  const dangerCount = mockNotificationInbox.filter((item) => item.level === "Bahaya").length;
+  const [items, setItems] = useState<Array<{
+    id: string;
+    subject: string;
+    message: string;
+    level: NotificationConditionLevel;
+    sender: string;
+    channel: string;
+    receivedAt: string;
+    isRead: boolean;
+  }>>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      setErrorMessage(null);
+      try {
+        const response = await api.get("/alerts/history", {
+          params: { page: 1, limit: 100 },
+        });
+
+        const rows = (response.data?.data?.items ?? []) as Array<{
+          id: string;
+          title: string;
+          message: string;
+          severity: "INFO" | "WARNING" | "DANGER";
+          channels: string[];
+          sentAt: string;
+          user?: { name?: string };
+        }>;
+
+        setItems(
+          rows.map((row) => ({
+            id: row.id,
+            subject: row.title,
+            message: row.message,
+            level: row.severity === "DANGER" ? "Bahaya" : row.severity === "WARNING" ? "Waspada" : "Aman",
+            sender: row.user?.name ?? "Sistem EWS",
+            channel: row.channels?.[0] ?? "push",
+            receivedAt: row.sentAt,
+            isRead: false,
+          })),
+        );
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Gagal memuat notifikasi.");
+      }
+    };
+
+    void load();
+  }, []);
+
+  const unreadCount = useMemo(() => items.filter((item) => !item.isRead).length, [items]);
+  const dangerCount = useMemo(() => items.filter((item) => item.level === "Bahaya").length, [items]);
+  const conditionCount = useMemo(() => {
+    const levels = new Set(items.map((item) => item.level));
+    return levels.size;
+  }, [items]);
+
+  const conditions = useMemo(
+    () =>
+      (["Aman", "Waspada", "Bahaya"] as NotificationConditionLevel[])
+        .filter((level) => items.some((item) => item.level === level))
+        .map((level) => ({
+          id: level,
+          title: `Kondisi ${level}`,
+          level,
+          description:
+            level === "Bahaya"
+              ? "Alert berisiko tinggi aktif. Prioritaskan koordinasi evakuasi."
+              : level === "Waspada"
+                ? "Alert peringatan aktif. Tingkatkan pemantauan lapangan."
+                : "Sistem masih dalam kondisi aman.",
+          recommendation:
+            level === "Bahaya"
+              ? "Aktifkan jalur darurat dan koordinasi lintas instansi."
+              : level === "Waspada"
+                ? "Siapkan tim lapangan dan validasi data sensor."
+                : "Lanjutkan monitoring rutin.",
+        })),
+    [items],
+  );
 
   return (
     <main className="space-y-6">
@@ -33,7 +108,7 @@ export default function AdminNotificationsPage() {
         <div className="relative z-10 space-y-1.5">
           <h1 className="text-2xl font-bold tracking-tight">Notifikasi & Inbox Admin</h1>
           <p className="max-w-2xl text-sm text-blue-50/95">
-            Ringkasan kondisi peringatan dari Aman hingga Bahaya, lengkap dengan dummy pesan inbox lintas kanal komunikasi.
+            Ringkasan kondisi peringatan dari Aman hingga Bahaya, lengkap dengan pesan inbox lintas kanal komunikasi.
           </p>
         </div>
       </Card>
@@ -41,12 +116,12 @@ export default function AdminNotificationsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-slate-200 bg-white/95 shadow-sm">
           <p className="text-sm text-slate-500">Kondisi Peringatan</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900">{mockNotificationConditions.length}</p>
-          <p className="text-xs text-slate-500">Aman, Waspada, Siaga, Bahaya</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{conditionCount}</p>
+          <p className="text-xs text-slate-500">Aman, Waspada, Bahaya</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
           <p className="text-sm text-slate-500">Total Pesan Inbox</p>
-          <p className="mt-1 text-3xl font-bold text-cyan-700">{mockNotificationInbox.length}</p>
+          <p className="mt-1 text-3xl font-bold text-cyan-700">{items.length}</p>
           <p className="text-xs text-slate-500">Push, WhatsApp, Email, SMS</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
@@ -60,11 +135,11 @@ export default function AdminNotificationsPage() {
         <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40 xl:col-span-2">
           <div className="mb-3">
             <h2 className="text-base font-semibold text-slate-900">Kondisi Peringatan</h2>
-            <p className="text-sm text-slate-500">Dummy data untuk tiap level kondisi saat monitoring banjir.</p>
+            <p className="text-sm text-slate-500">Ringkasan kondisi berdasarkan data notifikasi backend.</p>
           </div>
 
           <div className="space-y-3">
-            {mockNotificationConditions.map((item) => (
+            {conditions.map((item) => (
               <article key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold text-slate-900">{item.title}</h3>
@@ -77,8 +152,8 @@ export default function AdminNotificationsPage() {
                 </p>
 
                 <div className="mt-3 flex items-center justify-between gap-2 text-xs text-slate-500">
-                  <span>{item.responseSla}</span>
-                  <span>Update: {formatTimestamp(item.updatedAt)}</span>
+                  <span>Auto update dari alerts history</span>
+                  <span>{items.length} notifikasi total</span>
                 </div>
               </article>
             ))}
@@ -97,7 +172,7 @@ export default function AdminNotificationsPage() {
           </div>
 
           <div className="space-y-3">
-            {mockNotificationInbox.map((item) => (
+            {items.map((item) => (
               <article
                 key={item.id}
                 className={`rounded-xl border p-3.5 transition-colors ${
@@ -124,6 +199,8 @@ export default function AdminNotificationsPage() {
           </div>
         </Card>
       </div>
+
+      {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
     </main>
   );
 }
