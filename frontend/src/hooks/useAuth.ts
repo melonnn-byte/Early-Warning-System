@@ -12,10 +12,10 @@ const REFRESH_TOKEN_KEY = "ews_refresh_token";
 
 function mapBackendRole(role: string): AppUser["role"] {
   const normalized = role.toUpperCase();
-  if (normalized === "ADMIN" || normalized === "SUPER_ADMIN") {
+  if (normalized === "ADMIN") {
     return "admin";
   }
-  return "operator";
+  return "user";
 }
 
 function toAppUser(user: BackendAuthUser): AppUser {
