@@ -90,6 +90,26 @@ export default function LoginPage() {
     }, 700);
   };
 
+  const onQuickLoginAdmin = async () => {
+    setEmail("admin@ews.com");
+    setPassword("Admin123!");
+    await loginAndRedirect(
+      "admin@ews.com",
+      "Admin123!",
+      "Login cepat Admin berhasil. Mengalihkan ke dashboard...",
+    );
+  };
+
+  const onQuickLoginUser = async () => {
+    setEmail("user1@ews.com");
+    setPassword("User12345!");
+    await loginAndRedirect(
+      "user1@ews.com",
+      "User12345!",
+      "Login cepat User berhasil. Mengalihkan ke dashboard...",
+    );
+  };
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-sky-50 px-6 py-10">
       <div className="absolute inset-0">
@@ -141,6 +161,29 @@ export default function LoginPage() {
             </svg>
             Login dengan Google
           </button>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => {
+                void onQuickLoginAdmin();
+              }}
+              disabled={isSubmitting}
+              className="inline-flex w-full items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
+            >
+              Login Cepat Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void onQuickLoginUser();
+              }}
+              disabled={isSubmitting}
+              className="inline-flex w-full items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-50"
+            >
+              Login Cepat User
+            </button>
+          </div>
 
           <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-slate-200" />
