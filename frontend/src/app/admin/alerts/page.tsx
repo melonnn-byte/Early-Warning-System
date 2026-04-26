@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatTimestamp } from "@/lib/utils";
 import api from "@/lib/api";
 
@@ -20,6 +21,7 @@ export default function AdminAlertsPage() {
   const [title, setTitle] = useState("Peringatan Kenaikan Debit Air");
   const [sent, setSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmBroadcastOpen, setConfirmBroadcastOpen] = useState(false);
   const [history, setHistory] = useState<Array<{
     id: string;
     sentAt: string;
@@ -90,8 +92,7 @@ export default function AdminAlertsPage() {
     setMessage("Status WASPADA: terjadi kenaikan debit air. Mohon tingkatkan kesiapsiagaan dan pantau update resmi.");
   };
 
-  const sendAlert = async (event: FormEvent) => {
-    event.preventDefault();
+  const sendAlert = async () => {
     setErrorMessage(null);
     setSent(false);
 
@@ -120,6 +121,11 @@ export default function AdminAlertsPage() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Gagal mengirim peringatan.");
     }
+  };
+
+  const submitWithConfirm = (event: FormEvent) => {
+    event.preventDefault();
+    setConfirmBroadcastOpen(true);
   };
 
   return (
@@ -154,7 +160,7 @@ export default function AdminAlertsPage() {
 
       <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <h2 className="mb-3 text-base font-semibold text-slate-900">Panel Kirim Peringatan Manual</h2>
-        <form onSubmit={sendAlert} className="space-y-4">
+        <form onSubmit={submitWithConfirm} className="space-y-4">
           <label className="block text-sm text-slate-700">
             Target Penerima
             <select
@@ -282,6 +288,19 @@ export default function AdminAlertsPage() {
           </table>
         </div>
       </Card>
+
+      <ConfirmDialog
+        open={confirmBroadcastOpen}
+        title="Siarkan peringatan sekarang?"
+        description="Pesan akan dikirim ke kanal aktif sesuai target wilayah. Pastikan judul dan isi pesan sudah benar."
+        confirmText="Ya, siarkan"
+        cancelText="Periksa lagi"
+        onCancel={() => setConfirmBroadcastOpen(false)}
+        onConfirm={() => {
+          setConfirmBroadcastOpen(false);
+          void sendAlert();
+        }}
+      />
     </main>
   );
 }
