@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Sensor, SensorConnectivity } from "@/types/sensor";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal";
 import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { getStatusFromLevel } from "@/lib/utils";
@@ -41,6 +42,7 @@ export default function AdminSensorsPage() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState<SensorFormState>(emptyForm);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const loadSensors = async () => {
     setErrorMessage(null);
@@ -265,7 +267,7 @@ export default function AdminSensorsPage() {
                     <Button variant="secondary" onClick={() => openEdit(sensor)}>
                       Edit
                     </Button>
-                    <Button variant="danger" onClick={() => deleteSensor(sensor.id)}>
+                    <Button variant="danger" onClick={() => setDeleteConfirm({ id: sensor.id, name: sensor.name })}>
                       Hapus
                     </Button>
                   </div>
@@ -400,6 +402,22 @@ export default function AdminSensorsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteConfirm)}
+        title="Hapus sensor ini?"
+        description={`Sensor ${deleteConfirm?.name ?? "terpilih"} akan dihapus dari monitoring.`}
+        confirmText="Ya, hapus"
+        cancelText="Batal"
+        onCancel={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          const selected = deleteConfirm;
+          setDeleteConfirm(null);
+          if (selected) {
+            void deleteSensor(selected.id);
+          }
+        }}
+      />
     </main>
   );
 }
