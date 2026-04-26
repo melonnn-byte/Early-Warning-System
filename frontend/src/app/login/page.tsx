@@ -13,8 +13,7 @@ const getRedirectPathByRole = (role: UserRole | string) =>
 
 export default function LoginPage() {
   const router = useRouter();
-  // dummyAccounts sudah dihapus dari useAuth
-  const { login, loginWithGoogle } = useAuth(); 
+  const { login, loginWithGoogle } = useAuth();
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,32 +71,6 @@ export default function LoginPage() {
     }, 700);
   };
 
-  const onQuickLogin = async (role: "admin" | "operator") => {
-    setError(null);
-    setSuccess(null);
-    setIsSubmitting(true);
-
-    // Menggunakan akun default yang di-generate oleh backend (ensureDefaultAdmin)
-    // Untuk operator, asumsikan email ini sudah Anda daftarkan di halaman Register
-    const testEmail = role === "admin" ? "admin@ews.com" : "user@ews.com";
-    const testPassword = role === "admin" ? "admin123" : "user123";
-
-    const result = await login(testEmail, testPassword);
-    
-    if (!result.ok) {
-      setError(`Login cepat ${role} gagal: ${result.message}`);
-      setIsSubmitting(false);
-      return;
-    }
-
-    setSuccess(`Login cepat ${role} berhasil. Mengalihkan...`);
-    setTimeout(() => {
-      if (result.user) {
-        router.push(getRedirectPathByRole(result.user.role));
-      }
-    }, 450);
-  };
-
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-sky-50 px-6 py-10">
       <div className="absolute inset-0">
@@ -137,26 +110,6 @@ export default function LoginPage() {
 
           <h2 className="text-2xl font-bold text-slate-900">Login</h2>
           <p className="mt-2 text-sm text-slate-600">Masuk ke akun kamu untuk mengakses layanan EWS.</p>
-
-          {/* Tombol Quick Login dipertahankan untuk testing, tapi mengarah ke API sungguhan */}
-          <div className="mt-5 flex justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => onQuickLogin("admin")}
-                disabled={isSubmitting}
-                className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
-              >
-                Admin Test
-              </button>
-              <button
-                type="button"
-                onClick={() => onQuickLogin("operator")}
-                disabled={isSubmitting}
-                className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-100 disabled:opacity-50"
-              >
-                User Test
-              </button>
-          </div>
 
           <button
             type="button"
