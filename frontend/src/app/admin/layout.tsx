@@ -6,17 +6,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminLayout({ children }: PropsWithChildren) {
   const router = useRouter();
   const { loading, isAuthenticated, logout, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const handleLogout = () => {
+    setLogoutConfirmOpen(false);
     logout();
     router.replace("/login");
-  }
+  };
 
   if (loading) {
     return <main className="mx-auto w-full max-w-2xl px-6 py-10 text-sm text-slate-600">Memuat sesi admin...</main>;
@@ -124,7 +127,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
               </div>
             </div>
 
-            <Button variant="secondary" onClick={handleLogout} className="hidden xl:inline-flex">
+            <Button variant="secondary" onClick={() => setLogoutConfirmOpen(true)} className="hidden xl:inline-flex">
               Logout
             </Button>
           </div>
@@ -134,6 +137,16 @@ export default function AdminLayout({ children }: PropsWithChildren) {
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </section>
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        title="Logout dari dashboard admin?"
+        description="Sesi admin akan diakhiri dan Anda akan diarahkan ke halaman login."
+        confirmText="Ya, logout"
+        cancelText="Batal"
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 }
