@@ -24,7 +24,7 @@ export function AuthRedirectWrapper({ children }: AuthRedirectWrapperProps) {
 
     // Jika user sudah login, redirect ke dashboard sesuai role
     if (user) {
-      const userRole = user.role?.toLowerCase() || "operator";
+      const userRole = user.role?.toLowerCase() || "user";
       const redirectPath = 
         userRole === "admin" ? "/admin/dashboard" : "/user/dashboard";
       router.push(redirectPath);
