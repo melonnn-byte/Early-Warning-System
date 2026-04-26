@@ -20,7 +20,6 @@ const userNavLinks: NavbarItem[] = [
   { href: "/user/map", label: "Peta Sensor" },
   { href: "/user/emergency", label: "Kontak Darurat" },
   { href: "/user/education", label: "Panduan" },
-  { href: "/user/faq", label: "FAQ" },
 ];
 
 export function Navbar() {
