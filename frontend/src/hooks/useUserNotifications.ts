@@ -55,7 +55,11 @@ function mapSeverityToGuideHref(severity: ApiAlertItem["severity"]): string {
 export function useUserNotifications() {
   const [items, setItems] = useState<UserNotificationItem[]>([]);
   const [readMap, setReadMap] = useState<Record<string, boolean>>(() =>
-    parseReadMap(localStorage.getItem(USER_NOTIFICATION_STORAGE_KEY)),
+    parseReadMap(
+      typeof window === "undefined"
+        ? null
+        : localStorage.getItem(USER_NOTIFICATION_STORAGE_KEY),
+    ),
   );
 
   const loadNotifications = useCallback(async () => {
@@ -90,7 +94,13 @@ export function useUserNotifications() {
   }, [readMap]);
 
   useEffect(() => {
-    void loadNotifications();
+    const timer = window.setTimeout(() => {
+      void loadNotifications();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [loadNotifications]);
 
   useEffect(() => {
