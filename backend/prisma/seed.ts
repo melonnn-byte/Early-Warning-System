@@ -23,20 +23,12 @@ const prisma = new PrismaClient({ adapter });
 async function upsertUsers() {
   const users = [
     {
-      email: 'superadmin@ews.com',
-      name: 'Super Admin EWS',
-      password: 'Superadmin123!',
-      role: UserRole.SUPER_ADMIN,
-      institution: 'Pusat Komando EWS',
-      phone: '6281110000001',
-    },
-    {
       email: 'admin@ews.com',
       name: 'Admin EWS',
       password: 'Admin123!',
       role: UserRole.ADMIN,
       institution: 'BPBD Kota',
-      phone: '6281110000002',
+      phone: '6281110000001',
     },
     {
       email: 'admin2@ews.com',
@@ -44,15 +36,7 @@ async function upsertUsers() {
       password: 'AdminOps123!',
       role: UserRole.ADMIN,
       institution: 'BPBD Kota',
-      phone: '6281110000005',
-    },
-    {
-      email: 'officer@ews.com',
-      name: 'Petugas Lapangan EWS',
-      password: 'Field12345!',
-      role: UserRole.FIELD_OFFICER,
-      institution: 'Tim Reaksi Cepat',
-      phone: '6281110000006',
+      phone: '6281110000002',
     },
     {
       email: 'user1@ews.com',
@@ -368,12 +352,12 @@ async function main() {
   await upsertEmergencyContacts();
   await seedSensorLogs();
 
-  console.log('Seed selesai: users, sensors, thresholds, emergency contacts, dan sensor logs berhasil dibuat.');
+  console.log(
+    'Seed selesai: users, sensors, thresholds, emergency contacts, dan sensor logs berhasil dibuat.',
+  );
   console.log('Akun cepat login:');
-  console.log('- superadmin@ews.com / Superadmin123!');
   console.log('- admin@ews.com / Admin123!');
   console.log('- admin2@ews.com / AdminOps123!');
-  console.log('- officer@ews.com / Field12345!');
   console.log('- user1@ews.com / User12345!');
   console.log('- user2@ews.com / User12345!');
   console.log('- user3@ews.com / User12345!');
