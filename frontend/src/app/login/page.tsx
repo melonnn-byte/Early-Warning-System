@@ -8,8 +8,31 @@ import { Card } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserRole } from "@/types/user";
 
-const getRedirectPathByRole = (role: UserRole | string) => 
-  (role === "ADMIN" || role === "admin" ? "/admin/dashboard" : "/user/dashboard");
+const getRedirectPathByRole = (role: UserRole | string) => {
+  const normalized = String(role ?? "").toUpperCase();
+  if (normalized === "ADMIN" || normalized === "SUPER_ADMIN") {
+    return "/admin/dashboard";
+  }
+  if (normalized === "OPERATOR" || normalized === "FIELD_OFFICER" || normalized === "USER") {
+    return "/user/dashboard";
+  }
+  return "/dashboard";
+};
+
+type QuickLoginAccount = {
+  label: string;
+  email: string;
+  password: string;
+};
+
+const QUICK_LOGIN_ACCOUNTS: QuickLoginAccount[] = [
+  { label: "Super Admin", email: "superadmin@ews.com", password: "Superadmin123!" },
+  { label: "Admin", email: "admin@ews.com", password: "Admin123!" },
+  { label: "Admin Operasional", email: "admin2@ews.com", password: "AdminOps123!" },
+  { label: "Petugas Lapangan", email: "officer@ews.com", password: "Field12345!" },
+  { label: "User 1", email: "user1@ews.com", password: "User12345!" },
+  { label: "User 2", email: "user2@ews.com", password: "User12345!" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +44,39 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const completeLoginRedirect = (role: UserRole | string) => {
+    setTimeout(() => {
+      router.push(getRedirectPathByRole(role));
+    }, 700);
+  };
+
+  const loginAndRedirect = async (
+    selectedEmail: string,
+    selectedPassword: string,
+    successMessage: string,
+  ) => {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    const result = await login(selectedEmail, selectedPassword);
+
+    if (!result.ok) {
+      setError(result.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!result.user) {
+      setError("Data user tidak ditemukan setelah login.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    setSuccess(successMessage);
+    completeLoginRedirect(result.user.role);
+  };
+
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!email || !password) {
@@ -28,26 +84,17 @@ export default function LoginPage() {
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
-    setSuccess(null);
+    await loginAndRedirect(email, password, "Login berhasil. Mengalihkan ke dashboard...");
+  };
 
-    // Tambahkan await karena sekarang login memanggil API API
-    const result = await login(email, password);
-    
-    if (!result.ok) {
-      setError(result.message);
-      setIsSubmitting(false);
-      return;
-    }
-
-    setSuccess("Login berhasil. Mengalihkan ke dashboard...");
-    setTimeout(() => {
-      // Pastikan result.user ada sebelum dialihkan
-      if (result.user) {
-        router.push(getRedirectPathByRole(result.user.role));
-      }
-    }, 700);
+  const onQuickLogin = async (account: QuickLoginAccount) => {
+    setEmail(account.email);
+    setPassword(account.password);
+    await loginAndRedirect(
+      account.email,
+      account.password,
+      `Login cepat ${account.label} berhasil. Mengalihkan ke dashboard...`,
+    );
   };
 
   const onGoogleLogin = async () => {
@@ -167,6 +214,24 @@ export default function LoginPage() {
             {error && <p className="text-sm font-medium text-rose-600 text-center">{error}</p>}
             {success && <p className="text-sm font-medium text-emerald-600 text-center">{success}</p>}
           </form>
+
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Login Cepat (Akun Seed)</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {QUICK_LOGIN_ACCOUNTS.map((account) => (
+                <button
+                  key={account.email}
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => onQuickLogin(account)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <p className="font-semibold text-slate-800">{account.label}</p>
+                  <p className="mt-0.5 truncate text-slate-500">{account.email}</p>
+                </button>
+              ))}
+            </div>
+          </div>
 
           <p className="mt-5 text-center text-sm text-slate-600">
             Belum punya akun?{" "}
