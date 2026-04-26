@@ -13,7 +13,7 @@ const getRedirectPathByRole = (role: string) =>
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [institution, setInstitution] = useState("");
@@ -51,6 +51,7 @@ export default function RegisterPage() {
         name,
         email,
         password,
+        institution,
       });
 
       setMessage("Pendaftaran berhasil! Mengalihkan ke dashboard...");
@@ -75,9 +76,25 @@ export default function RegisterPage() {
     }
   };
 
-  const onGoogleRegister = () => {
+  const onGoogleRegister = async () => {
     setError(null);
-    setMessage("Fitur pendaftaran dengan Google sedang dalam pengembangan.");
+    setMessage(null);
+    setIsSubmitting(true);
+
+    const result = await loginWithGoogle();
+
+    if (!result.ok) {
+      setError(result.message);
+      setIsSubmitting(false);
+      return;
+    }
+
+    setMessage("Pendaftaran/Login Google berhasil! Mengalihkan ke dashboard...");
+    setTimeout(() => {
+      if (result.user) {
+        router.push(getRedirectPathByRole(result.user.role));
+      }
+    }, 700);
   };
 
   return (
@@ -113,6 +130,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={onGoogleRegister}
+            disabled={isSubmitting}
             className="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
