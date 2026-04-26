@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { landingNavLinks } from "@/constants";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ export function Navbar() {
   const [activeSection, setActiveSection] = useState("home");
   const [isHeroMode, setIsHeroMode] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
   
   const isHomePage = pathname === "/";
@@ -123,6 +125,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     setProfileOpen(false);
+    setLogoutConfirmOpen(false);
     await logout();
     router.push("/login");
   };
@@ -258,7 +261,10 @@ export function Navbar() {
                     <div className="border-t border-slate-100 p-1.5">
                       <button
                         type="button"
-                        onClick={handleLogout}
+                        onClick={() => {
+                          setProfileOpen(false);
+                          setLogoutConfirmOpen(true);
+                        }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-600 hover:bg-rose-50"
                       >
                         Keluar
@@ -284,6 +290,18 @@ export function Navbar() {
           </li>
         </ul>
       </nav>
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        title="Keluar dari akun?"
+        description="Anda akan keluar dari sesi saat ini dan perlu login kembali untuk mengakses fitur pengguna."
+        confirmText="Ya, logout"
+        cancelText="Tetap di sini"
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          void handleLogout();
+        }}
+      />
     </header>
   );
 }
