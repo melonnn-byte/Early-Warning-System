@@ -84,6 +84,23 @@ export default function UserNotificationsPage() {
                     <p className="mt-1 text-xs text-slate-500">
                       Target: {item.sensorName} • Waktu: {formatTimestamp(item.createdAt)}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span
+                        className={`rounded-full px-2.5 py-1 font-semibold ${
+                          item.sourceType === "ADMIN"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {item.sourceType === "ADMIN" ? "Dari Admin" : "Dari Sistem"}
+                      </span>
+                      <span className="text-slate-500">{item.senderName}</span>
+                      {item.channels.length > 0 && (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">
+                          Kanal: {item.channels.join(", ")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors group-hover:border-blue-300 group-hover:text-blue-700">
