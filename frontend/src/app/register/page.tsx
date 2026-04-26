@@ -5,10 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/api"; // Wajib ditambahkan untuk memanggil backend
+
+const getRedirectPathByRole = (role: string) => 
+  (role === "ADMIN" || role === "admin" ? "/admin/dashboard" : "/user/dashboard");
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [institution, setInstitution] = useState("");
@@ -48,10 +53,18 @@ export default function RegisterPage() {
         password,
       });
 
-      setMessage("Pendaftaran berhasil! Mengalihkan ke halaman login...");
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
+      setMessage("Pendaftaran berhasil! Mengalihkan ke dashboard...");
+
+      // Auto-login setelah registrasi
+      setTimeout(async () => {
+        const result = await login(email, password);
+        if (result.ok && result.user) {
+          router.push(getRedirectPathByRole(result.user.role));
+        } else {
+          // Jika auto-login gagal, arahkan ke login page
+          router.push("/login");
+        }
+      }, 1000);
     } catch (err: unknown) {
       // Menangkap pesan error dari backend (misal: "Email sudah terdaftar")
       const errorMessage =

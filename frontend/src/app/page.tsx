@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { Reveal } from "@/components/ui/Reveal";
 import { PublicRealtimeDashboardSection } from "@/components/landing/PublicRealtimeDashboardSection";
 import { emergencyContacts } from "@/constants";
+import { AuthRedirectWrapper } from "@/components/AuthRedirectWrapper";
 
 const statusLegend = [
   {
@@ -104,7 +105,8 @@ const photoItems = [
 
 export default function Home() {
   return (
-    <main>
+    <AuthRedirectWrapper>
+      <main>
       <section id="home" className="relative isolate overflow-hidden text-white">
         <Image
           src={photoItems[0].src}
@@ -323,5 +325,6 @@ export default function Home() {
       </section>
 
     </main>
+    </AuthRedirectWrapper>
   );
 }
