@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/api";
 
@@ -14,6 +15,7 @@ export default function ProfilePage() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [removeAvatarConfirmOpen, setRemoveAvatarConfirmOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,7 +122,7 @@ export default function ProfilePage() {
                   {avatar && (
                     <button
                       type="button"
-                      onClick={() => setAvatar(null)}
+                      onClick={() => setRemoveAvatarConfirmOpen(true)}
                       className="rounded-xl px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                     >
                       Hapus
@@ -185,6 +187,19 @@ export default function ProfilePage() {
 
           </form>
         </div>
+
+        <ConfirmDialog
+          open={removeAvatarConfirmOpen}
+          title="Hapus foto profil?"
+          description="Foto profil akan dihapus dari draft perubahan. Simpan profil untuk menerapkan perubahan ke akun Anda."
+          confirmText="Ya, hapus"
+          cancelText="Batal"
+          onCancel={() => setRemoveAvatarConfirmOpen(false)}
+          onConfirm={() => {
+            setAvatar(null);
+            setRemoveAvatarConfirmOpen(false);
+          }}
+        />
       </main>
     </div>
   );
