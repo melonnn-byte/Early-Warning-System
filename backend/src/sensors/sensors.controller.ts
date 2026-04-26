@@ -1,6 +1,25 @@
-import { Controller, Get } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { SensorConnectivity, SensorType } from '@prisma/client';
 import { ok } from '../common/api-response';
 import { SensorsService } from './sensors.service';
+
+interface UpsertSensorRequest {
+  sensorId: string;
+  name: string;
+  type?: SensorType;
+  latitude: number;
+  longitude: number;
+  batteryLevel?: number | null;
+  connectivity?: SensorConnectivity;
+}
 
 @Controller('sensors')
 export class SensorsController {
@@ -9,6 +28,27 @@ export class SensorsController {
   @Get()
   async findAll() {
     const data = await this.sensorsService.findAll();
+    return ok(data);
+  }
+
+  @Post()
+  async create(@Body() body: UpsertSensorRequest) {
+    const data = await this.sensorsService.create(body);
+    return ok(data);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: Partial<UpsertSensorRequest>,
+  ) {
+    const data = await this.sensorsService.update(id, body);
+    return ok(data);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    const data = await this.sensorsService.remove(id);
     return ok(data);
   }
 }
