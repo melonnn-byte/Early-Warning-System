@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -10,16 +11,41 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
-// Initialize Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+
+// Fungsi untuk meminta izin notifikasi dan mengambil FCM Token
+export const requestForToken = async () => {
+  try {
+    // Pastikan kode berjalan di browser dan browser mendukung notifikasi
+    if (typeof window !== 'undefined' && await isSupported()) {
+      const messaging = getMessaging(app);
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        const currentToken = await getToken(messaging, {
+          // WAJIB: Anda harus menambahkan VAPID KEY dari Firebase Console ke file .env.local
+          vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY, 
+        });
+        
+        if (currentToken) {
+          return currentToken;
+        } else {
+          console.warn('Gagal mendapatkan token FCM. Pastikan VAPID Key benar.');
+        }
+      } else {
+        console.warn('Izin notifikasi ditolak oleh pengguna.');
+      }
+    }
+  } catch (err) {
+    console.error('Terjadi kesalahan saat mengambil token FCM: ', err);
+  }
+  return null;
+};
 
 export default app;
