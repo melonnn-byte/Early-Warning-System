@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AlertSeverity } from '@prisma/client';
 import { ok } from '../common/api-response';
 import { AlertsService } from './alerts.service';
@@ -50,6 +50,12 @@ export class AlertsController {
       Number(page),
       Number(limit),
     );
+    return ok(data);
+  }
+
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    const data = await this.alertsService.getById(id);
     return ok(data);
   }
 }
