@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { AppUser, UserRole } from "@/types/user";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 
@@ -54,6 +55,7 @@ export default function AdminUsersPage() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyUserForm);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   const loadUsers = async () => {
     setErrorMessage(null);
@@ -227,7 +229,7 @@ export default function AdminUsersPage() {
                     <Button variant="secondary" onClick={() => openEdit(user)}>
                       Edit
                     </Button>
-                    <Button variant="danger" onClick={() => deleteUser(user.id)}>
+                    <Button variant="danger" onClick={() => setDeleteConfirm({ id: user.id, name: user.name })}>
                       Hapus
                     </Button>
                   </div>
@@ -321,6 +323,22 @@ export default function AdminUsersPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteConfirm)}
+        title="Hapus pengguna ini?"
+        description={`Data akun ${deleteConfirm?.name ?? "pengguna"} akan dihapus dari sistem.`}
+        confirmText="Ya, hapus"
+        cancelText="Batal"
+        onCancel={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          const selected = deleteConfirm;
+          setDeleteConfirm(null);
+          if (selected) {
+            void deleteUser(selected.id);
+          }
+        }}
+      />
     </main>
   );
 }
