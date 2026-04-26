@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { RainfallChart } from "@/components/charts/RainfallChart";
 import { WaterLevelChart } from "@/components/charts/WaterLevelChart";
 import { formatTimestamp } from "@/lib/utils";
-import { mockSensors, mockWaterLevelHistory } from "@/constants";
+import type { WaterLevelPoint } from "@/types/water-level";
+import api from "@/lib/api";
 
 interface FilterState {
   fromDate: string;
@@ -15,8 +16,14 @@ interface FilterState {
 }
 
 export default function AdminReportsPage() {
-  const initialFromDate = mockWaterLevelHistory[0]?.timestamp.slice(0, 10) ?? "";
-  const initialToDate = mockWaterLevelHistory[mockWaterLevelHistory.length - 1]?.timestamp.slice(0, 10) ?? "";
+  const today = new Date();
+  const weekAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
+  const initialFromDate = weekAgo.toISOString().slice(0, 10);
+  const initialToDate = today.toISOString().slice(0, 10);
+  const [sensorOptions, setSensorOptions] = useState<Array<{ id: string; sensorId: string; name: string }>>([]);
+  const [filteredData, setFilteredData] = useState<WaterLevelPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [filterForm, setFilterForm] = useState<FilterState>({
     fromDate: initialFromDate,
@@ -29,17 +36,67 @@ export default function AdminReportsPage() {
     sensorId: "all",
   });
 
-  const filteredData = useMemo(() => {
-    const fromTime = appliedFilter.fromDate ? new Date(`${appliedFilter.fromDate}T00:00:00`).getTime() : Number.MIN_SAFE_INTEGER;
-    const toTime = appliedFilter.toDate ? new Date(`${appliedFilter.toDate}T23:59:59`).getTime() : Number.MAX_SAFE_INTEGER;
+  const loadSensors = async () => {
+    const response = await api.get("/sensors");
+    const rows = (response.data?.data ?? []) as Array<{ id: string; sensorId: string; name: string }>;
+    setSensorOptions(rows);
+    return rows;
+  };
 
-    return mockWaterLevelHistory.filter((point) => {
-      const ts = new Date(point.timestamp).getTime();
-      const inDateRange = ts >= fromTime && ts <= toTime;
-      const inSensorRange = appliedFilter.sensorId === "all" || point.sensorId === appliedFilter.sensorId;
-      return inDateRange && inSensorRange;
+  const loadHistory = async (filter: FilterState, sensors: Array<{ sensorId: string }>) => {
+    const targets = filter.sensorId === "all" ? sensors.map((item) => item.sensorId) : [filter.sensorId];
+    const requests = targets.map((sensorId) =>
+      api.get("/water-levels/history", {
+        params: {
+          sensorId,
+          startDate: `${filter.fromDate}T00:00:00.000Z`,
+          endDate: `${filter.toDate}T23:59:59.000Z`,
+          interval: "hourly",
+        },
+      }),
+    );
+
+    const results = await Promise.all(requests);
+    const points = results.flatMap((result) => {
+      const rows = (result.data?.data ?? []) as Array<{
+        sensorId: string;
+        waterLevel: number;
+        recordedAt: string;
+      }>;
+      return rows.map((row) => ({
+        timestamp: row.recordedAt,
+        levelCm: row.waterLevel,
+        rainfallMm: 0,
+        sensorId: row.sensorId,
+      }));
     });
-  }, [appliedFilter]);
+
+    points.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    setFilteredData(points);
+  };
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      setErrorMessage(null);
+      try {
+        const sensors = await loadSensors();
+        await loadHistory(
+          {
+            fromDate: initialFromDate,
+            toDate: initialToDate,
+            sensorId: "all",
+          },
+          sensors,
+        );
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Gagal memuat laporan.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void bootstrap();
+  }, [initialFromDate, initialToDate]);
 
   const exportCsv = () => {
     const lines = [
@@ -125,8 +182,8 @@ export default function AdminReportsPage() {
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             >
               <option value="all">Semua Sensor</option>
-              {mockSensors.map((sensor) => (
-                <option key={sensor.id} value={sensor.id}>
+              {sensorOptions.map((sensor) => (
+                <option key={sensor.id} value={sensor.sensorId}>
                   {sensor.name}
                 </option>
               ))}
@@ -134,7 +191,18 @@ export default function AdminReportsPage() {
           </label>
 
           <div className="flex items-end">
-            <Button className="w-full" onClick={() => setAppliedFilter(filterForm)}>
+            <Button
+              className="w-full"
+              onClick={async () => {
+                setAppliedFilter(filterForm);
+                setErrorMessage(null);
+                try {
+                  await loadHistory(filterForm, sensorOptions);
+                } catch (error) {
+                  setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data filter.");
+                }
+              }}
+            >
               Tampilkan Data
             </Button>
           </div>
@@ -190,6 +258,9 @@ export default function AdminReportsPage() {
           </tbody>
         </table>
       </Card>
+
+      {loading && <p className="text-sm text-slate-500">Memuat data laporan...</p>}
+      {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
     </main>
   );
 }
