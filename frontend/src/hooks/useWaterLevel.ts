@@ -1,137 +1,201 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { mockSensors } from "@/constants";
+import api from "@/lib/api";
 import type { Sensor } from "@/types/sensor";
 import type { LiveWaterLevel, WaterLevelPoint } from "@/types/water-level";
 import { getStatusFromLevel } from "@/lib/utils";
 
 interface UseWaterLevelOptions {
   sensorId?: string;
-  autoSimulate?: boolean;
   refreshMs?: number;
 }
 
-const HISTORY_LIMIT = 7 * 24 * 2;
-const DEFAULT_SENSOR_ID = mockSensors[0]?.id ?? "SEN-01";
-const INITIAL_BASE_TIME = Date.now();
+const DEFAULT_REFRESH_MS = 15_000;
+const HISTORY_HOURS = 7 * 24;
 
-function buildInitialPoint(sensor: Sensor, index: number, offset: number): WaterLevelPoint {
-  const distance = 7 * 24 - 1 - index;
-  const ts = INITIAL_BASE_TIME - distance * 60 * 60 * 1000;
-  const wave = Math.sin((index + offset) / 8) * 15;
-  const rainWave = Math.abs(Math.cos((index + offset) / 10)) * 6;
-  const flowWave = Math.abs(Math.sin((index + offset) / 7)) * 1.2;
-  const baseLevel = sensor.lastLevelCm + (sensor.id === "SEN-03" ? 22 : sensor.id === "SEN-02" ? 8 : 0);
-
-  return {
-    timestamp: new Date(ts).toISOString(),
-    levelCm: Math.round(Math.max(70, baseLevel - 15 + wave + (index % 4))),
-    rainfallMm: Math.round(Math.max(0, 3 + rainWave + (index % 3))),
-    flowSpeedMs: Number((0.65 + flowWave + (index % 4) * 0.07).toFixed(2)),
-    sensorId: sensor.id,
-  };
+interface ApiSensor {
+  sensorId: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  batteryLevel: number | null;
+  connectivity: string;
+  lastActiveAt: string | null;
 }
 
-function buildInitialHistoryBySensor() {
-  return mockSensors.reduce<Record<string, WaterLevelPoint[]>>((acc, sensor, sensorIndex) => {
-    acc[sensor.id] = Array.from({ length: 7 * 24 }).map((_, index) => buildInitialPoint(sensor, index, sensorIndex * 6));
-    return acc;
-  }, {});
+interface ApiWaterCurrent {
+  sensorId: string;
+  sensorName: string;
+  waterLevel: number;
+  status: string;
+  recordedAt: string;
 }
 
-function buildInitialLatestBySensor(historyBySensor: Record<string, WaterLevelPoint[]>) {
-  return mockSensors.reduce<Record<string, LiveWaterLevel>>((acc, sensor) => {
-    const latestPoint = historyBySensor[sensor.id]?.at(-1);
-    const levelCm = latestPoint?.levelCm ?? sensor.lastLevelCm;
-    const rainfallMm = latestPoint?.rainfallMm ?? 0;
-
-    acc[sensor.id] = {
-      sensorId: sensor.id,
-      sensorName: sensor.name,
-      levelCm,
-      rainfallMm,
-      status: getStatusFromLevel(levelCm),
-      updatedAt: latestPoint?.timestamp ?? new Date(INITIAL_BASE_TIME).toISOString(),
-    };
-
-    return acc;
-  }, {});
+interface ApiRainfallCurrent {
+  sensorId: string;
+  rainfall: number;
 }
 
-function createInitialWaterState() {
-  const historyBySensor = buildInitialHistoryBySensor();
-  const latestBySensor = buildInitialLatestBySensor(historyBySensor);
+interface ApiWaterHistory {
+  sensorId: string;
+  waterLevel: number;
+  recordedAt: string;
+}
 
-  return { historyBySensor, latestBySensor };
+function mapStatus(status?: string) {
+  if (status === "DANGER") return "danger" as const;
+  if (status === "WARNING") return "alert" as const;
+  return "safe" as const;
+}
+
+function mapConnectivity(connectivity?: string) {
+  return connectivity === "ONLINE" ? "online" : "offline";
+}
+
+function toIsoNow() {
+  return new Date().toISOString();
 }
 
 export function useWaterLevel(options: UseWaterLevelOptions = {}) {
-  const { sensorId, autoSimulate = true, refreshMs = 7000 } = options;
-  const initialState = useMemo(() => createInitialWaterState(), []);
-  const [historyBySensor, setHistoryBySensor] = useState<Record<string, WaterLevelPoint[]>>(initialState.historyBySensor);
-  const [latestBySensor, setLatestBySensor] = useState<Record<string, LiveWaterLevel>>(initialState.latestBySensor);
+  const { sensorId, refreshMs = DEFAULT_REFRESH_MS } = options;
+  const [historyBySensor, setHistoryBySensor] = useState<Record<string, WaterLevelPoint[]>>({});
+  const [latestBySensor, setLatestBySensor] = useState<Record<string, LiveWaterLevel>>({});
+  const [sensorsSnapshot, setSensorsSnapshot] = useState<Sensor[]>([]);
 
   useEffect(() => {
-    if (!autoSimulate) {
-      return;
-    }
+    let cancelled = false;
 
-    const timer = setInterval(() => {
-      setLatestBySensor((prev) => {
-        const next: Record<string, LiveWaterLevel> = { ...prev };
+    const loadCurrent = async () => {
+      try {
+        const [sensorsResp, waterResp, rainfallResp] = await Promise.all([
+          api.get("/sensors"),
+          api.get("/water-levels/current"),
+          api.get("/rainfall/current"),
+        ]);
 
-        mockSensors.forEach((sensor, index) => {
-          const prevSensor = prev[sensor.id] ?? {
+        if (cancelled) {
+          return;
+        }
+
+        const sensors = (sensorsResp.data?.data ?? []) as ApiSensor[];
+        const waterRows = (waterResp.data?.data ?? []) as ApiWaterCurrent[];
+        const rainfallRows = (rainfallResp.data?.data ?? []) as ApiRainfallCurrent[];
+
+        const waterBySensorId = new Map(waterRows.map((row) => [row.sensorId, row]));
+        const rainfallBySensorId = new Map(rainfallRows.map((row) => [row.sensorId, row]));
+
+        const nextSensors: Sensor[] = sensors.map((sensor) => {
+          const water = waterBySensorId.get(sensor.sensorId);
+          return {
+            id: sensor.sensorId,
+            name: sensor.name,
+            riverName: sensor.name,
+            latitude: sensor.latitude,
+            longitude: sensor.longitude,
+            connectivity: mapConnectivity(sensor.connectivity),
+            batteryPercent: sensor.batteryLevel ?? 0,
+            lastLevelCm: water?.waterLevel ?? 0,
+            status: mapStatus(water?.status),
+            updatedAt: water?.recordedAt ?? sensor.lastActiveAt ?? toIsoNow(),
+          };
+        });
+
+        setSensorsSnapshot(nextSensors);
+
+        const nextLiveBySensor = nextSensors.reduce<Record<string, LiveWaterLevel>>((acc, sensor) => {
+          const rain = rainfallBySensorId.get(sensor.id);
+          acc[sensor.id] = {
             sensorId: sensor.id,
             sensorName: sensor.name,
             levelCm: sensor.lastLevelCm,
-            rainfallMm: 4,
-            status: getStatusFromLevel(sensor.lastLevelCm),
-            updatedAt: new Date().toISOString(),
+            rainfallMm: rain?.rainfall ?? 0,
+            status: sensor.status,
+            updatedAt: sensor.updatedAt,
           };
+          return acc;
+        }, {});
 
-          const drift = Math.floor(Math.random() * 8) - 2;
-          const nextLevel = Math.max(70, prevSensor.levelCm + drift + (index === 2 ? 1 : 0));
-          const nextRainfall = Math.max(0, prevSensor.rainfallMm + Math.floor(Math.random() * 4) - 1);
-          const nextUpdatedAt = new Date().toISOString();
+        setLatestBySensor(nextLiveBySensor);
+      } catch {
+        if (!cancelled) {
+          setSensorsSnapshot([]);
+          setLatestBySensor({});
+        }
+      }
+    };
 
-          next[sensor.id] = {
-            ...prevSensor,
-            levelCm: nextLevel,
-            rainfallMm: nextRainfall,
-            status: getStatusFromLevel(nextLevel),
-            updatedAt: nextUpdatedAt,
-          };
-        });
-
-        setHistoryBySensor((prevHistory) => {
-          const updatedHistory = { ...prevHistory };
-
-          Object.values(next).forEach((live) => {
-            const nextPoint: WaterLevelPoint = {
-              timestamp: live.updatedAt,
-              levelCm: live.levelCm,
-              rainfallMm: live.rainfallMm,
-              flowSpeedMs: Number((Math.max(0.3, live.levelCm / 220 + live.rainfallMm / 35)).toFixed(2)),
-              sensorId: live.sensorId,
-            };
-
-            const current = updatedHistory[live.sensorId] ?? [];
-            updatedHistory[live.sensorId] = [...current, nextPoint].slice(-HISTORY_LIMIT);
-          });
-
-          return updatedHistory;
-        });
-
-        return next;
-      });
+    void loadCurrent();
+    const timer = window.setInterval(() => {
+      void loadCurrent();
     }, refreshMs);
 
-    return () => clearInterval(timer);
-  }, [autoSimulate, refreshMs]);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [refreshMs]);
 
-  const activeSensorId = sensorId && latestBySensor[sensorId] ? sensorId : DEFAULT_SENSOR_ID;
+  useEffect(() => {
+    const activeId = sensorId && latestBySensor[sensorId] ? sensorId : sensorsSnapshot[0]?.id;
+
+    if (!activeId) {
+      setHistoryBySensor({});
+      return;
+    }
+
+    let cancelled = false;
+    const loadHistory = async () => {
+      try {
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - HISTORY_HOURS * 60 * 60 * 1000);
+
+        const historyResp = await api.get("/water-levels/history", {
+          params: {
+            sensorId: activeId,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            interval: "hourly",
+          },
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        const rows = (historyResp.data?.data ?? []) as ApiWaterHistory[];
+        const latestRain = latestBySensor[activeId]?.rainfallMm ?? 0;
+
+        const mapped: WaterLevelPoint[] = rows.map((row) => {
+          const levelCm = row.waterLevel;
+          const rainfallMm = latestRain;
+          return {
+            timestamp: row.recordedAt,
+            levelCm,
+            rainfallMm,
+            flowSpeedMs: Number((Math.max(0.3, levelCm / 220 + rainfallMm / 35)).toFixed(2)),
+            sensorId: row.sensorId,
+          };
+        });
+
+        setHistoryBySensor((prev) => ({
+          ...prev,
+          [activeId]: mapped,
+        }));
+      } catch {
+        if (!cancelled) {
+          setHistoryBySensor((prev) => ({ ...prev, [activeId]: [] }));
+        }
+      }
+    };
+
+    void loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [sensorId, sensorsSnapshot, latestBySensor]);
+
+  const activeSensorId = sensorId && latestBySensor[sensorId] ? sensorId : sensorsSnapshot[0]?.id ?? "";
 
   const latest = latestBySensor[activeSensorId] ?? {
     sensorId: activeSensorId,
@@ -143,18 +207,6 @@ export function useWaterLevel(options: UseWaterLevelOptions = {}) {
   };
 
   const history = historyBySensor[activeSensorId] ?? [];
-
-  const sensorsSnapshot = useMemo<Sensor[]>(() => {
-    return mockSensors.map((sensor) => {
-      const live = latestBySensor[sensor.id];
-      return {
-        ...sensor,
-        lastLevelCm: live?.levelCm ?? sensor.lastLevelCm,
-        status: live?.status ?? sensor.status,
-        updatedAt: live?.updatedAt ?? sensor.updatedAt,
-      };
-    });
-  }, [latestBySensor]);
 
   const liveBySensor = useMemo(() => {
     return sensorsSnapshot.map((sensor) => {
