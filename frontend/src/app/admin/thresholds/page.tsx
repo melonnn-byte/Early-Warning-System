@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { mockSensorThresholds, mockSensors } from "@/constants";
+import api from "@/lib/api";
 
 interface ThresholdForm {
   normalMaxCm: number;
@@ -17,73 +17,97 @@ interface ThresholdForm {
 }
 
 export default function AdminThresholdsPage() {
-  const [selectedSensorId, setSelectedSensorId] = useState(mockSensors[0]?.id ?? "");
-  const [configs, setConfigs] = useState(mockSensorThresholds);
+  const [sensorCount, setSensorCount] = useState(0);
+  const [autoBroadcastCount, setAutoBroadcastCount] = useState(0);
   const [saved, setSaved] = useState(false);
-
-  const selectedConfig =
-    configs.find((item) => item.sensorId === selectedSensorId) ??
-    mockSensorThresholds[0] ?? {
-      sensorId: selectedSensorId,
-      normalMaxCm: 150,
-      warningMinCm: 151,
-      warningMaxCm: 250,
-      dangerMinCm: 251,
-      rainLightMax: 5,
-      rainModerateMax: 20,
-      rainHeavyMin: 21,
-      autoBroadcast: false,
-    };
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [form, setForm] = useState<ThresholdForm>({
-    normalMaxCm: selectedConfig.normalMaxCm,
-    warningMinCm: selectedConfig.warningMinCm,
-    warningMaxCm: selectedConfig.warningMaxCm,
-    dangerMinCm: selectedConfig.dangerMinCm,
-    rainLightMax: selectedConfig.rainLightMax,
-    rainModerateMax: selectedConfig.rainModerateMax,
-    rainHeavyMin: selectedConfig.rainHeavyMin,
-    autoBroadcast: selectedConfig.autoBroadcast,
+    normalMaxCm: 150,
+    warningMinCm: 151,
+    warningMaxCm: 250,
+    dangerMinCm: 251,
+    rainLightMax: 5,
+    rainModerateMax: 20,
+    rainHeavyMin: 21,
+    autoBroadcast: false,
   });
 
-  const syncFormWithSensor = (sensorId: string) => {
-    const config = configs.find((item) => item.sensorId === sensorId);
-    if (!config) return;
+  const loadData = async () => {
+    setErrorMessage(null);
+    try {
+      const [thresholdResp, sensorResp] = await Promise.all([
+        api.get("/thresholds"),
+        api.get("/sensors"),
+      ]);
 
-    setForm({
-      normalMaxCm: config.normalMaxCm,
-      warningMinCm: config.warningMinCm,
-      warningMaxCm: config.warningMaxCm,
-      dangerMinCm: config.dangerMinCm,
-      rainLightMax: config.rainLightMax,
-      rainModerateMax: config.rainModerateMax,
-      rainHeavyMin: config.rainHeavyMin,
-      autoBroadcast: config.autoBroadcast,
-    });
+      const thresholdData = thresholdResp.data?.data as {
+        waterLevel: {
+          normal: { min: number; max: number };
+          warning: { min: number; max: number };
+          danger: { min: number; max: number | null };
+        } | null;
+        rainfall: {
+          light: { min: number; max: number };
+          moderate: { min: number; max: number };
+          heavy: { min: number; max: number | null };
+        } | null;
+      };
+
+      const sensors = (sensorResp.data?.data ?? []) as Array<{ id: string }>;
+      setSensorCount(sensors.length);
+
+      const waterLevel = thresholdData?.waterLevel;
+      const rainfall = thresholdData?.rainfall;
+
+      if (waterLevel && rainfall) {
+        setForm((prev) => ({
+          ...prev,
+          normalMaxCm: waterLevel.normal.max,
+          warningMinCm: waterLevel.warning.min,
+          warningMaxCm: waterLevel.warning.max,
+          dangerMinCm: waterLevel.danger.min,
+          rainLightMax: rainfall.light.max,
+          rainModerateMax: rainfall.moderate.max,
+          rainHeavyMin: rainfall.heavy.min,
+        }));
+      }
+
+      setAutoBroadcastCount(0);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat konfigurasi ambang batas.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const onSubmit = (event: FormEvent) => {
+  useEffect(() => {
+    void loadData();
+  }, []);
+
+  const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
-
-    setConfigs((prev) =>
-      prev.map((item) =>
-        item.sensorId === selectedSensorId
-          ? {
-              ...item,
-              normalMaxCm: form.normalMaxCm,
-              warningMinCm: form.warningMinCm,
-              warningMaxCm: form.warningMaxCm,
-              dangerMinCm: form.dangerMinCm,
-              rainLightMax: form.rainLightMax,
-              rainModerateMax: form.rainModerateMax,
-              rainHeavyMin: form.rainHeavyMin,
-              autoBroadcast: form.autoBroadcast,
-            }
-          : item,
-      ),
-    );
-
-    setSaved(true);
+    setSaved(false);
+    setErrorMessage(null);
+    try {
+      await api.put("/thresholds", {
+        waterLevel: {
+          normal: { min: 0, max: form.normalMaxCm },
+          warning: { min: form.warningMinCm, max: form.warningMaxCm },
+          danger: { min: form.dangerMinCm, max: null },
+        },
+        rainfall: {
+          light: { min: 0, max: form.rainLightMax },
+          moderate: { min: form.rainLightMax + 0.1, max: form.rainModerateMax },
+          heavy: { min: form.rainHeavyMin, max: null },
+        },
+      });
+      setSaved(true);
+      setAutoBroadcastCount(form.autoBroadcast ? sensorCount : 0);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Gagal menyimpan ambang batas.");
+    }
   };
 
   return (
@@ -99,20 +123,23 @@ export default function AdminThresholdsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-slate-200 bg-white/95 shadow-sm">
           <p className="text-sm text-slate-500">Sensor Terkonfigurasi</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900">{configs.length}</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{sensorCount}</p>
           <p className="text-xs text-slate-500">Sudah memiliki rule threshold</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
           <p className="text-sm text-slate-500">Auto Broadcast Aktif</p>
-          <p className="mt-1 text-3xl font-bold text-blue-600">{configs.filter((item) => item.autoBroadcast).length}</p>
+          <p className="mt-1 text-3xl font-bold text-blue-600">{autoBroadcastCount}</p>
           <p className="text-xs text-slate-500">Sensor siap kirim peringatan otomatis</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
-          <p className="text-sm text-slate-500">Sensor Dipilih</p>
-          <p className="mt-1 truncate text-xl font-bold text-cyan-700">{selectedSensorId}</p>
-          <p className="text-xs text-slate-500">Konfigurasi sedang diedit</p>
+          <p className="text-sm text-slate-500">Mode Konfigurasi</p>
+          <p className="mt-1 truncate text-xl font-bold text-cyan-700">Global</p>
+          <p className="text-xs text-slate-500">Berlaku untuk seluruh sensor</p>
         </Card>
       </div>
+
+      {loading && <p className="text-sm text-slate-500">Memuat konfigurasi ambang batas...</p>}
+      {errorMessage && <p className="text-sm font-medium text-rose-600">{errorMessage}</p>}
 
       <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
         <div className="mb-4">
@@ -120,25 +147,7 @@ export default function AdminThresholdsPage() {
           <p className="text-sm text-slate-500">Pastikan konfigurasi level air dan hujan sesuai kondisi lapangan tiap sensor.</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-5">
-          <label className="block text-sm text-slate-700">
-            Pilih Sensor
-            <select
-              value={selectedSensorId}
-              onChange={(event) => {
-                const sensorId = event.target.value;
-                setSelectedSensorId(sensorId);
-                syncFormWithSensor(sensorId);
-                setSaved(false);
-              }}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-            >
-              {mockSensors.map((sensor) => (
-                <option key={sensor.id} value={sensor.id}>
-                  {sensor.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p className="text-sm text-slate-600">Pengaturan ini disimpan di database dan diterapkan sebagai threshold global.</p>
 
           <div>
             <h2 className="mb-2 text-sm font-semibold text-slate-800">Konfigurasi Ketinggian Air</h2>
@@ -238,7 +247,7 @@ export default function AdminThresholdsPage() {
 
           <div className="flex items-center gap-3">
             <Button type="submit">Simpan Konfigurasi</Button>
-            {saved && <p className="text-sm text-emerald-600">Perubahan ambang batas berhasil disimpan (mock).</p>}
+            {saved && <p className="text-sm text-emerald-600">Perubahan ambang batas berhasil disimpan.</p>}
           </div>
         </form>
       </Card>
