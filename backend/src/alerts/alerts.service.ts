@@ -104,7 +104,7 @@ export class AlertsService {
       (await this.prisma.user.findFirst({
         where: {
           isActive: true,
-          role: { in: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+          role: UserRole.ADMIN,
         },
         orderBy: { createdAt: 'asc' },
       })) ??
