@@ -11,6 +11,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RainfallModule } from './rainfall/rainfall.module';
 import { SensorsModule } from './sensors/sensors.module';
 import { ThresholdsModule } from './thresholds/thresholds.module';
+import { UsersModule } from './users/users.module';
 import { WaterLevelsModule } from './water-levels/water-levels.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { WaterLevelsModule } from './water-levels/water-levels.module';
     SensorsModule,
     AlertsModule,
     ThresholdsModule,
+    UsersModule,
     EmergencyContactsModule,
     LocationsModule,
   ],
