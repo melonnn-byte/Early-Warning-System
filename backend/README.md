@@ -87,6 +87,19 @@ Buka Prisma Studio:
 npm run prisma:studio
 ```
 
+Seed data awal (sensor, thresholds, emergency contacts, akun user/admin):
+
+```bash
+npm run prisma:seed
+```
+
+Akun hasil seed untuk login cepat:
+
+- `superadmin@ews.com` / `Superadmin123!`
+- `admin@ews.com` / `Admin123!`
+- `user1@ews.com` / `User12345!`
+- `user2@ews.com` / `User12345!`
+
 ## 5) Menjalankan Aplikasi
 
 Mode development:
