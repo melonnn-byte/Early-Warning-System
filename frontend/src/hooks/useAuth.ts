@@ -3,79 +3,175 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
-import type { AppUser } from "@/types/user";
-import api from "@/lib/api"; 
+import type { AppUser, BackendAuthUser } from "@/types/user";
+import api from "@/lib/api";
 
 const AUTH_USER_KEY = "ews_user_data";
 const ACCESS_TOKEN_KEY = "ews_access_token";
 const REFRESH_TOKEN_KEY = "ews_refresh_token";
 
+function mapBackendRole(role: string): AppUser["role"] {
+  const normalized = role.toUpperCase();
+  if (normalized === "ADMIN" || normalized === "SUPER_ADMIN") {
+    return "admin";
+  }
+  return "operator";
+}
+
+function toAppUser(user: BackendAuthUser): AppUser {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar ?? null,
+    institution: user.institution ?? null,
+    role: mapBackendRole(String(user.role ?? "")),
+  };
+}
+
+function setCookie(name: string, value: string, maxAgeSeconds: number) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;
+}
+
+function clearCookie(name: string) {
+  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
+}
+
+function syncAuthCookies(accessToken: string, refreshToken: string) {
+  setCookie(ACCESS_TOKEN_KEY, accessToken, 60 * 60 * 24 * 7);
+  setCookie(REFRESH_TOKEN_KEY, refreshToken, 60 * 60 * 24 * 30);
+}
+
+function clearAuthCookies() {
+  clearCookie(ACCESS_TOKEN_KEY);
+  clearCookie(REFRESH_TOKEN_KEY);
+}
+
+function persistAuth(accessToken: string, refreshToken: string, user: AppUser) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
+  localStorage.setItem(REFRESH_TOKEN_KEY, String(refreshToken));
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  syncAuthCookies(accessToken, refreshToken);
+}
+
+function clearPersistedAuth() {
+  localStorage.removeItem(AUTH_USER_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  clearAuthCookies();
+}
+
 export function useAuth() {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user dari localStorage saat pertama kali aplikasi jalan
+  // Hydrate local state lalu validasi sesi ke backend agar data user selalu real.
   useEffect(() => {
-    try {
-      const rawUser = localStorage.getItem(AUTH_USER_KEY);
-      const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-      
-      if (rawUser && token) {
-        setUser(JSON.parse(rawUser) as AppUser);
+    let cancelled = false;
+
+    const loadSession = async () => {
+      try {
+        const rawUser = localStorage.getItem(AUTH_USER_KEY);
+        const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+
+        if (rawUser) {
+          try {
+            const parsed = JSON.parse(rawUser) as AppUser;
+            if (!cancelled) {
+              setUser(parsed);
+            }
+          } catch {
+            localStorage.removeItem(AUTH_USER_KEY);
+          }
+        }
+
+        if (!token) {
+          if (!cancelled) {
+            setUser(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        setCookie(ACCESS_TOKEN_KEY, token, 60 * 60 * 24 * 7);
+
+        const response = await api.get("/auth/me");
+        const backendUser = response.data?.data as BackendAuthUser;
+        const normalizedUser = toAppUser(backendUser);
+
+        if (!cancelled) {
+          setUser(normalizedUser);
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(normalizedUser));
+        }
+      } catch {
+        clearPersistedAuth();
+        if (!cancelled) {
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    void loadSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      // Tembak ke endpoint backend
       const response = await api.post("/auth/login", { email, password });
-      
-      // Response asumsikan memakai format dari utils backend (ok(data))
-      const { accessToken, refreshToken, user: userData } = response.data.data;
+      const {
+        accessToken,
+        refreshToken,
+        user: backendUser,
+      } = response.data.data as {
+        accessToken: string;
+        refreshToken: string;
+        user: BackendAuthUser;
+      };
 
-      // Simpan di Local Storage
-      // Gunakan String() untuk menjamin format penyimpanan ke localStorage
-      localStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
-      localStorage.setItem(REFRESH_TOKEN_KEY, String(refreshToken));
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
+      const normalizedUser = toAppUser(backendUser);
+      persistAuth(accessToken, refreshToken, normalizedUser);
 
-      setUser(userData as AppUser);
-      return { ok: true as const, user: userData as AppUser };
+      setUser(normalizedUser);
+      return { ok: true as const, user: normalizedUser };
 
     } catch (error: unknown) {
-      // 1. Ganti 'any' dengan 'unknown'
-      // Karena api.ts melempar new Error(), kita cek instanceof
       const errorMessage =
         error instanceof Error ? error.message : "Login gagal, periksa koneksi.";
-      
+
       return { ok: false as const, message: errorMessage };
     }
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
     try {
-      // Sign in with Google popup
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      const firebaseUser = result.user;
 
-      // Get Firebase ID token
-      const idToken = await user.getIdToken();
+      const idToken = await firebaseUser.getIdToken();
 
-      // Send to backend for verification and JWT generation
       const response = await api.post("/auth/google-login", { idToken });
+      const {
+        accessToken,
+        refreshToken,
+        user: backendUser,
+      } = response.data.data as {
+        accessToken: string;
+        refreshToken: string;
+        user: BackendAuthUser;
+      };
 
-      const { accessToken, refreshToken, user: userData } = response.data.data;
+      const normalizedUser = toAppUser(backendUser);
+      persistAuth(accessToken, refreshToken, normalizedUser);
 
-      // Simpan di Local Storage
-      localStorage.setItem(ACCESS_TOKEN_KEY, String(accessToken));
-      localStorage.setItem(REFRESH_TOKEN_KEY, String(refreshToken));
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(userData));
-
-      setUser(userData as AppUser);
-      return { ok: true as const, user: userData as AppUser };
+      setUser(normalizedUser);
+      return { ok: true as const, user: normalizedUser };
 
     } catch (error: unknown) {
       const errorMessage =
@@ -86,16 +182,11 @@ export function useAuth() {
 
   const logout = useCallback(async () => {
     try {
-      // (Opsional) Panggil API logout agar dicatat di server
       await api.post("/auth/logout");
     } catch {
-      // 2. Hapus variabel (error) karena tidak dipakai (unused-vars)
       console.warn("Logout API failed, forcing local logout");
     } finally {
-      // Hapus data lokal secara paksa
-      localStorage.removeItem(AUTH_USER_KEY);
-      localStorage.removeItem(ACCESS_TOKEN_KEY);
-      localStorage.removeItem(REFRESH_TOKEN_KEY);
+      clearPersistedAuth();
       setUser(null);
     }
   }, []);
