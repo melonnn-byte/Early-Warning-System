@@ -112,7 +112,7 @@ export default function RegisterPage() {
           </p>
           <h1 className="mt-5 text-3xl font-bold leading-tight">Buat Akun Baru untuk Monitoring Banjir</h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">
-            Daftarkan akun admin/operator untuk mengelola sensor, memantau alert, dan mengoordinasikan tindakan
+            Daftarkan akun admin/user untuk mengelola sensor, memantau alert, dan mengoordinasikan tindakan
             cepat saat kondisi darurat.
           </p>
 
