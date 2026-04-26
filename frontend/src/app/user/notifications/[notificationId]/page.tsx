@@ -96,6 +96,11 @@ export default function UserNotificationDetailPage() {
           title: string;
           message: string;
           severity: string;
+          channels?: string[];
+          sourceType?: "ADMIN" | "SYSTEM";
+          user?: {
+            name?: string | null;
+          } | null;
           targetArea?: string | null;
           sentAt: string;
         };
@@ -106,6 +111,8 @@ export default function UserNotificationDetailPage() {
           readMap[row.id] = true;
           localStorage.setItem(USER_NOTIFICATION_STORAGE_KEY, JSON.stringify(readMap));
         }
+
+        const sourceType = row.sourceType ?? (row.user?.name ? "ADMIN" : "SYSTEM");
 
         const mapped: UserNotificationItem = {
           id: row.id,
@@ -118,6 +125,9 @@ export default function UserNotificationDetailPage() {
           createdAt: row.sentAt,
           isRead: true,
           guideHref: mapSeverityToGuideHref(row.severity),
+          senderName: row.user?.name?.trim() || (sourceType === "ADMIN" ? "Admin EWS" : "Sistem EWS"),
+          sourceType,
+          channels: row.channels ?? [],
         };
 
         if (!cancelled) {
@@ -208,6 +218,21 @@ export default function UserNotificationDetailPage() {
           </div>
         </div>
 
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p className="text-xs text-slate-500">Sumber</p>
+            <p className="text-sm font-semibold text-slate-800">
+              {notification.sourceType === "ADMIN" ? "Admin" : "Sistem"} • {notification.senderName}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p className="text-xs text-slate-500">Kanal Notifikasi</p>
+            <p className="text-sm font-semibold text-slate-800">
+              {notification.channels.length > 0 ? notification.channels.join(", ") : "push"}
+            </p>
+          </div>
+        </div>
+
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
           <h2 className="text-sm font-semibold text-blue-900">Rekomendasi Cepat</h2>
           <p className="mt-1 text-sm text-blue-900/90">{levelQuickAction[notification.riskLevel]}</p>
@@ -218,7 +243,7 @@ export default function UserNotificationDetailPage() {
             href={notification.guideHref}
             className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Lihat Panduan Tindakan
+            Buka Tab Panduan Sesuai Level
           </Link>
           <Link
             href="/user/notifications"
