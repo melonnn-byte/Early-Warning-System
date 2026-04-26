@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { useUserNotifications } from "@/hooks/useUserNotifications";
 import { formatTimestamp } from "@/lib/utils";
+import api from "@/lib/api"; // WAJIB DIIMPORT UNTUK MEMANGGIL API BACKEND
 
 const levelBadgeClass = {
   yellow: "bg-amber-100 text-amber-700",
@@ -20,23 +21,56 @@ const levelLabel = {
 export default function UserNotificationsPage() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useUserNotifications();
 
+  // --- FUNGSI UNTUK MENGETES PUSH NOTIFICATION ---
+  const handleTestNotification = async () => {
+    try {
+      // Kita menembak endpoint broadcast yang sudah ada di backend
+      await api.post("/alerts/broadcast", {
+        title: "🔔 TES SISTEM EWS",
+        message: "Berhasil! Push Notification dari EWS Flood Guard sudah masuk ke perangkat Anda.",
+        severity: "INFO",
+        channels: ["push"],
+        targetArea: "Semua Wilayah" 
+      });
+      
+      // Tampilkan alert standar untuk memberi tahu bahwa request berhasil terkirim
+      alert("Request tes notifikasi terkirim! Segera minimize browser Anda dan cek pojok layar dalam 1-3 detik.");
+    } catch (error) {
+      console.error("Gagal mengirim tes notifikasi:", error);
+      alert("Gagal mengirim tes. Cek console browser atau terminal backend.");
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">User Notifications</p>
           <h1 className="text-2xl font-bold text-slate-900">Notifikasi Peringatan Banjir</h1>
           <p className="mt-1 text-sm text-slate-600">Saat sensor berstatus kuning, oren, atau merah, notifikasi akan muncul di sini.</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+        {/* --- AREA TOMBOL-TOMBOL --- */}
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* TOMBOL TES PUSH NOTIFICATION */}
+          <button
+            onClick={handleTestNotification}
+            className="flex items-center gap-2 rounded-lg bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-200"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            Tes Push Notifikasi
+          </button>
+
+          <span className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700">
             Belum dibaca: {unreadCount}
           </span>
           <button
             type="button"
             onClick={markAllAsRead}
-            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Tandai semua dibaca
           </button>
