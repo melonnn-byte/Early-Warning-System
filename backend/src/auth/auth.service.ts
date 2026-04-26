@@ -19,6 +19,7 @@ interface RegisterPayload {
   email: string;
   password: string;
   name: string;
+  institution?: string;
 }
 
 interface UpdateProfilePayload {
@@ -48,6 +49,7 @@ interface UserWithTokenFields {
 interface PublicUserFields extends UserWithTokenFields {
   name: string;
   avatar?: string | null;
+  institution?: string | null;
 }
 
 @Injectable()
@@ -60,6 +62,12 @@ export class AuthService {
   // --- FUNGSI REGISTER BARU ---
   async register(payload: RegisterPayload) {
     const email = payload.email.trim().toLowerCase();
+    const name = payload.name.trim();
+    const institution = payload.institution?.trim() || null;
+
+    if (!name) {
+      throw new BadRequestException('Nama wajib diisi.');
+    }
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -73,9 +81,10 @@ export class AuthService {
     const newUser = await this.prisma.user.create({
       data: {
         email,
-        name: payload.name,
+        name,
         password: hashedPassword,
-        role: UserRole.FIELD_OFFICER,
+        institution,
+        role: UserRole.USER,
         isActive: true,
       },
     });
@@ -165,7 +174,7 @@ export class AuthService {
             email: email.toLowerCase(),
             name: name || 'Google User',
             password: '',
-            role: UserRole.FIELD_OFFICER,
+            role: UserRole.USER,
             isActive: true,
             avatar: picture,
           },
@@ -190,14 +199,36 @@ export class AuthService {
     }
   }
 
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User tidak ditemukan atau tidak aktif.');
+    }
+
+    return this.toPublicUser(user);
+  }
+
   // --- FUNGSI UPDATE PROFILE BARU ---
   async updateProfile(userId: string, data: UpdateProfilePayload) {
+    const nextName = data.name?.trim();
+    if (data.name !== undefined && !nextName) {
+      throw new BadRequestException('Nama tidak boleh kosong.');
+    }
+
+    const updateData: UpdateProfilePayload = {};
+    if (nextName !== undefined) {
+      updateData.name = nextName;
+    }
+    if (data.avatar !== undefined) {
+      updateData.avatar = data.avatar;
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        name: data.name,
-        avatar: data.avatar,
-      },
+      data: updateData,
     });
 
     return this.toPublicUser(updatedUser);
@@ -233,6 +264,7 @@ export class AuthService {
       name: user.name,
       role: user.role,
       avatar: user.avatar ?? null,
+      institution: user.institution ?? null,
     };
   }
 
