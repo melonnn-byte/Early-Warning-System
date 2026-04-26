@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "admin" | "operator" | "user";
+  requiredRole?: "admin" | "user";
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -28,10 +28,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     // Jika ada role requirement, check role
     if (requiredRole) {
       const userRole = user.role?.toLowerCase() || "user";
-      const hasRequiredRole = 
-        (requiredRole === "admin" && userRole === "admin") ||
-        (requiredRole === "operator" && userRole === "operator") ||
-        (requiredRole === "user" && (userRole === "operator" || userRole === "field_officer"));
+      const hasRequiredRole = requiredRole === userRole;
 
       if (!hasRequiredRole) {
         // Redirect ke dashboard yang sesuai dengan role mereka
@@ -60,10 +57,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   // Jika ada role requirement dan tidak sesuai, return null (akan di-redirect)
   if (requiredRole) {
     const userRole = user.role?.toLowerCase() || "user";
-    const hasRequiredRole = 
-      (requiredRole === "admin" && userRole === "admin") ||
-      (requiredRole === "operator" && userRole === "operator") ||
-      (requiredRole === "user" && (userRole === "operator" || userRole === "field_officer"));
+    const hasRequiredRole = requiredRole === userRole;
 
     if (!hasRequiredRole) {
       return null;
