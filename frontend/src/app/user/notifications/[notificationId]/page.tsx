@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/Card";
+import api from "@/lib/api";
 import { formatTimestamp } from "@/lib/utils";
 import { USER_NOTIFICATION_STORAGE_KEY } from "@/hooks/useUserNotifications";
 import type { UserNotificationItem } from "@/types/user-notification";
@@ -26,21 +27,41 @@ const levelQuickAction = {
   red: "Lakukan evakuasi segera ke titik aman resmi dan hubungi layanan darurat jika diperlukan.",
 } as const;
 
-function parseStoredNotifications(raw: string | null): UserNotificationItem[] {
+function parseReadMap(raw: string | null): Record<string, boolean> {
   if (!raw) {
-    return [];
+    return {};
   }
 
   try {
-    const parsed = JSON.parse(raw) as UserNotificationItem[];
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed;
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
-    return [];
+    return {};
   }
+}
+
+function mapSeverityToRiskLevel(severity: string): UserNotificationItem["riskLevel"] {
+  if (severity === "DANGER") {
+    return "red";
+  }
+
+  if (severity === "WARNING") {
+    return "orange";
+  }
+
+  return "yellow";
+}
+
+function mapSeverityToGuideHref(severity: string): string {
+  if (severity === "DANGER") {
+    return "/user/education#aksi-merah";
+  }
+
+  if (severity === "WARNING") {
+    return "/user/education#aksi-oren";
+  }
+
+  return "/user/education#aksi-kuning";
 }
 
 export default function UserNotificationDetailPage() {
@@ -57,34 +78,65 @@ export default function UserNotificationDetailPage() {
   const [notification, setNotification] = useState<UserNotificationItem | null>(null);
 
   useEffect(() => {
-    const commitState = (nextNotification: UserNotificationItem | null) => {
-      queueMicrotask(() => {
-        setNotification(nextNotification);
-        setLoading(false);
-      });
+    let cancelled = false;
+
+    const loadDetail = async () => {
+      if (!notificationId) {
+        if (!cancelled) {
+          setNotification(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const response = await api.get(`/alerts/${notificationId}`);
+        const row = response.data?.data as {
+          id: string;
+          title: string;
+          message: string;
+          severity: string;
+          targetArea?: string | null;
+          sentAt: string;
+        };
+
+        const readMap = parseReadMap(localStorage.getItem(USER_NOTIFICATION_STORAGE_KEY));
+        const isRead = Boolean(readMap[row.id]);
+        if (!isRead) {
+          readMap[row.id] = true;
+          localStorage.setItem(USER_NOTIFICATION_STORAGE_KEY, JSON.stringify(readMap));
+        }
+
+        const mapped: UserNotificationItem = {
+          id: row.id,
+          sensorId: row.targetArea || "WILAYAH",
+          sensorName: row.targetArea || "Wilayah Umum",
+          levelCm: 0,
+          riskLevel: mapSeverityToRiskLevel(row.severity),
+          title: row.title,
+          message: row.message,
+          createdAt: row.sentAt,
+          isRead: true,
+          guideHref: mapSeverityToGuideHref(row.severity),
+        };
+
+        if (!cancelled) {
+          setNotification(mapped);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setNotification(null);
+          setLoading(false);
+        }
+      }
     };
 
-    if (!notificationId) {
-      commitState(null);
-      return;
-    }
+    void loadDetail();
 
-    const stored = parseStoredNotifications(localStorage.getItem(USER_NOTIFICATION_STORAGE_KEY));
-    const target = stored.find((item) => item.id === notificationId) ?? null;
-
-    if (!target) {
-      commitState(null);
-      return;
-    }
-
-    if (!target.isRead) {
-      const updated = stored.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item));
-      localStorage.setItem(USER_NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
-      commitState({ ...target, isRead: true });
-      return;
-    }
-
-    commitState(target);
+    return () => {
+      cancelled = true;
+    };
   }, [notificationId]);
 
   if (loading) {
