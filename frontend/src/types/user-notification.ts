@@ -11,4 +11,7 @@ export interface UserNotificationItem {
   createdAt: string;
   isRead: boolean;
   guideHref: string;
+  senderName: string;
+  sourceType: "ADMIN" | "SYSTEM";
+  channels: string[];
 }
