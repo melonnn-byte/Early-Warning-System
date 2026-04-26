@@ -26,6 +26,18 @@ interface UpdateUserPayload {
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private normalizeRole(role?: UserRole): UserRole {
+    if (!role) {
+      return UserRole.USER;
+    }
+
+    if (role !== UserRole.ADMIN && role !== UserRole.USER) {
+      throw new BadRequestException('Role hanya boleh ADMIN atau USER.');
+    }
+
+    return role;
+  }
+
   async findAll() {
     return this.prisma.user.findMany({
       where: { isActive: true },
@@ -65,7 +77,7 @@ export class UsersService {
         password: hashedPassword,
         phone: payload.phone?.trim() || null,
         institution: payload.institution?.trim() || null,
-        role: payload.role ?? UserRole.USER,
+        role: this.normalizeRole(payload.role),
         isActive: true,
       },
       select: {
@@ -91,7 +103,10 @@ export class UsersService {
         payload.institution === undefined
           ? undefined
           : payload.institution?.trim() || null,
-      role: payload.role,
+      role:
+        payload.role === undefined
+          ? undefined
+          : this.normalizeRole(payload.role),
       isActive: payload.isActive,
     };
 
