@@ -17,8 +17,13 @@ backend/dist/
 mobile/.dart_tool/
 mobile/.packages
 mobile/build/
+mobile/mobile/build/
+mobile/mobile/.dart_tool/
 mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
+# Flutter build artifacts (nested projects)
+**/android/build/
+**/ios/build/
 
 
 # Environment
