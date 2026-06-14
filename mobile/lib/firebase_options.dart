@@ -41,39 +41,41 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Web config — isi dari Firebase Console jika dibutuhkan
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_AUTH_DOMAIN',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyAbTrWQwwc-S2pQmDlz-oAQqJWXayR8VtA',
+    appId: '1:235513471209:web:YOUR_WEB_APP_ID',
+    messagingSenderId: '235513471209',
+    projectId: 'ews-aplication',
+    authDomain: 'ews-aplication.firebaseapp.com',
+    storageBucket: 'ews-aplication.firebasestorage.app',
     measurementId: 'YOUR_MEASUREMENT_ID',
   );
 
+  // Android config — dari google-services.json
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyDNhNzUxmw5EfXZgOu025C81GxBy-pbsis',
+    appId: '1:235513471209:android:edcf4b48d1f99aa1e79078',
+    messagingSenderId: '235513471209',
+    projectId: 'ews-aplication',
+    storageBucket: 'ews-aplication.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: 'YOUR_IOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    iosBundleId: 'com.example.mobile',
+    apiKey: 'AIzaSyAbTrWQwwc-S2pQmDlz-oAQqJWXayR8VtA',
+    appId: '1:235513471209:ios:YOUR_IOS_APP_ID',
+    messagingSenderId: '235513471209',
+    projectId: 'ews-aplication',
+    storageBucket: 'ews-aplication.firebasestorage.app',
+    iosBundleId: 'com.ews.mobile',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_MACOS_API_KEY',
-    appId: 'YOUR_MACOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    iosBundleId: 'com.example.mobile',
+    apiKey: 'AIzaSyAbTrWQwwc-S2pQmDlz-oAQqJWXayR8VtA',
+    appId: '1:235513471209:ios:YOUR_IOS_APP_ID',
+    messagingSenderId: '235513471209',
+    projectId: 'ews-aplication',
+    storageBucket: 'ews-aplication.firebasestorage.app',
+    iosBundleId: 'com.ews.mobile',
   );
 }

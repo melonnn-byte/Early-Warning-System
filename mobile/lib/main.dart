@@ -18,6 +18,10 @@ import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
+/// Global navigator key — digunakan NotificationService untuk navigasi
+/// saat user tap notifikasi dari background/terminated state.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 FirebaseOptions _firebaseOptionsFromEnv() {
   final defaultOptions = DefaultFirebaseOptions.currentPlatform;
 
@@ -73,14 +77,17 @@ Future<void> main() async {
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
     if (useNativeFirebaseConfig) {
+      // Android menggunakan google-services.json secara native
       await Firebase.initializeApp();
     } else {
       await Firebase.initializeApp(options: _firebaseOptionsFromEnv());
     }
 
-    // Initialize notification service (register token, listeners)
+    // Initialize notification service — pass navigatorKey untuk handle tap
     try {
-      await NotificationService.instance.init();
+      await NotificationService.instance.init(
+        navigatorKey: navigatorKey,
+      );
     } catch (e) {
       debugPrint('NotificationService init error: $e');
     }
@@ -111,6 +118,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'EWS Flood Guard',
         theme: AppTheme.theme,

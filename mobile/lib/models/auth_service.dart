@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
 import 'api_service.dart';
 import 'user_model.dart';
+import '../services/notification_service.dart';
 
 class AuthResult {
   final bool isSuccess;
@@ -63,6 +64,8 @@ class AuthService {
 
         final userData = await _apiService.me();
         _currentUser = _mapBackendUserToModel(userData);
+        // Daftarkan FCM token setelah session berhasil di-restore
+        NotificationService.instance.registerTokenForUser().catchError((_) {});
         return true;
       }
     } catch (e) {
@@ -101,6 +104,8 @@ class AuthService {
       );
 
       _currentUser = _mapBackendUserToModel(userData);
+      // Daftarkan FCM token setelah login berhasil
+      NotificationService.instance.registerTokenForUser().catchError((_) {});
       return AuthResult(isSuccess: true);
     } catch (e) {
       return AuthResult(isSuccess: false, errorMessage: e.toString());
@@ -186,6 +191,8 @@ class AuthService {
       );
 
       _currentUser = _mapBackendUserToModel(userData);
+      // Daftarkan FCM token setelah Google login berhasil
+      NotificationService.instance.registerTokenForUser().catchError((_) {});
       return AuthResult(isSuccess: true);
     } catch (e) {
       return AuthResult(
