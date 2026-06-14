@@ -66,28 +66,52 @@ class NotificationService {
     await _flutterLocal.initialize(initializationSettings);
 
     // Request permission (iOS) and get token
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    final shouldRequestPermission =
+        defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+    if (shouldRequestPermission) {
+      try {
+        await _messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[NotificationService] requestPermission skipped: $e');
+        }
+      }
+    }
 
     try {
-      final token = await _messaging.getToken();
-      if (kDebugMode) debugPrint('[NotificationService] FCM token: $token');
+      final firebaseOptions = FirebaseMessaging.instance.app.options;
+      final looksLikePlaceholderConfig =
+          firebaseOptions.projectId == 'ews-flood-guard' ||
+          firebaseOptions.apiKey.contains('AbCdEfGh');
 
-      if (token != null) {
-        // send token to backend so it can push
-        try {
-          await ApiService().subscribePushToken(
-            token: token,
-            targetArea: targetArea,
+      if (looksLikePlaceholderConfig) {
+        if (kDebugMode) {
+          debugPrint(
+            '[NotificationService] Placeholder Firebase config detected; skipping FCM token registration.',
           );
-        } catch (e) {
-          if (kDebugMode) {
-            debugPrint(
-              '[NotificationService] Failed to register token with backend: $e',
+        }
+      } else {
+        final token = await _messaging.getToken();
+        if (kDebugMode) debugPrint('[NotificationService] FCM token: $token');
+
+        if (token != null) {
+          // send token to backend so it can push
+          try {
+            await ApiService().subscribePushToken(
+              token: token,
+              targetArea: targetArea,
             );
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint(
+                '[NotificationService] Failed to register token with backend: $e',
+              );
+            }
           }
         }
       }

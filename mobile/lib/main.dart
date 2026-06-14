@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -51,17 +52,32 @@ Future<void> main() async {
     debugPrint("Peringatan: File .env tidak ditemukan.");
   }
 
-  // Initialize Supabase & Subscribe to Realtime postgres_changes
-  try {
-    final supabase = SupabaseService();
-    await supabase.initialize();
-    supabase.subscribeToRealtime();
-  } catch (e) {
-    debugPrint("Supabase Realtime initialization error: $e");
+  // Initialize Supabase only when the app is configured for it.
+  final hasSupabaseConfig =
+      (dotenv.env['SUPABASE_URL']?.trim().isNotEmpty ?? false) &&
+      (dotenv.env['SUPABASE_ANON_KEY']?.trim().isNotEmpty ?? false);
+  if (hasSupabaseConfig) {
+    try {
+      final supabase = SupabaseService();
+      await supabase.initialize();
+      supabase.subscribeToRealtime();
+    } catch (e) {
+      debugPrint("Supabase Realtime initialization error: $e");
+    }
+  } else {
+    debugPrint('Supabase config not found; realtime bootstrap skipped.');
   }
 
   try {
-    await Firebase.initializeApp(options: _firebaseOptionsFromEnv());
+    final useNativeFirebaseConfig =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+    if (useNativeFirebaseConfig) {
+      await Firebase.initializeApp();
+    } else {
+      await Firebase.initializeApp(options: _firebaseOptionsFromEnv());
+    }
+
     // Initialize notification service (register token, listeners)
     try {
       await NotificationService.instance.init();
