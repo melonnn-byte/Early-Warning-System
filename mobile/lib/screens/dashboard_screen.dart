@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart'; // Ditambahkan untuk membaca state login global
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import '../models/auth_provider.dart'; // Ditambahkan untuk membedakan Admin/User
 import '../models/admin_provider.dart';
 import '../providers/telemetry_provider.dart';
@@ -17,6 +20,19 @@ import '../widgets/ews_appbar.dart';
 import 'main_navigation.dart';
 import 'edukasi_screen.dart';
 import 'darurat_screen.dart';
+
+class ChartDataPoint {
+  final DateTime timestamp;
+  final double value;
+  final String label;
+
+  ChartDataPoint({
+    required this.timestamp,
+    required this.value,
+    required this.label,
+  });
+}
+
 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onRefresh;
@@ -34,6 +50,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _historyError;
   final ApiService _api = ApiService();
 
+  String _wlRange = 'day'; // 'day' | 'week'
+  String _rfRange = 'day'; // 'day' | 'week'
+  String _frRange = 'day'; // 'day' | 'week'
+
+
   Future<void> _loadSensorHistory(SensorModel sensor) async {
     if (!mounted) return;
     setState(() {
@@ -43,8 +64,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     try {
       final now = DateTime.now();
-      final oneDayAgo = now.subtract(const Duration(hours: 24));
-      final startIso = oneDayAgo.toUtc().toIso8601String();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+      final startIso = sevenDaysAgo.toUtc().toIso8601String();
       final endIso = now.toUtc().toIso8601String();
 
       final telemetry = context.read<TelemetryProvider>();
@@ -67,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               sensorId: wlSensor.sensorId,
               startDate: startIso,
               endDate: endIso,
-              limit: 100,
+              limit: 500,
             )
             .catchError((e) => <WaterLevelLog>[]),
         _api
@@ -75,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               sensorId: rfSensor.sensorId,
               startDate: startIso,
               endDate: endIso,
-              limit: 100,
+              limit: 500,
             )
             .catchError((e) => <RainfallLog>[]),
         _api
@@ -83,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               sensorId: frSensor.sensorId,
               startDate: startIso,
               endDate: endIso,
-              limit: 100,
+              limit: 500,
             )
             .catchError((e) => <FlowRateLog>[]),
       ]);
@@ -113,6 +134,224 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return telemetry.sensors[_selectedSensorIndex];
     }
     return null;
+  }
+
+  String _getIndoDayName(int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return 'Sen';
+      case DateTime.tuesday:
+        return 'Sel';
+      case DateTime.wednesday:
+        return 'Rab';
+      case DateTime.thursday:
+        return 'Kam';
+      case DateTime.friday:
+        return 'Jum';
+      case DateTime.saturday:
+        return 'Sab';
+      case DateTime.sunday:
+        return 'Min';
+      default:
+        return '';
+    }
+  }
+
+  List<ChartDataPoint> _getProcessedWlData() {
+    if (_wlHistory.isEmpty) return [];
+    final sorted = List<WaterLevelLog>.from(_wlHistory)
+      ..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
+    final latestTimestamp = sorted.last.recordedAt;
+    
+    if (_wlRange == 'day') {
+      final cutoff = latestTimestamp.subtract(const Duration(hours: 24));
+      return sorted
+          .where((e) => e.recordedAt.isAfter(cutoff) && e.waterLevel > 0)
+          .map((e) {
+            final timeStr = '${e.recordedAt.hour.toString().padLeft(2, '0')}:${e.recordedAt.minute.toString().padLeft(2, '0')}';
+            return ChartDataPoint(
+              timestamp: e.recordedAt,
+              value: e.waterLevel,
+              label: timeStr,
+            );
+          })
+          .toList();
+    } else {
+      final cutoff = latestTimestamp.subtract(const Duration(days: 7));
+      final weeklyLogs = sorted.where((e) => e.recordedAt.isAfter(cutoff) && e.waterLevel > 0).toList();
+      final Map<String, List<WaterLevelLog>> grouped = {};
+      for (final log in weeklyLogs) {
+        final dateStr = DateFormat('yyyy-MM-dd').format(log.recordedAt.toLocal());
+        grouped.putIfAbsent(dateStr, () => []).add(log);
+      }
+      final List<ChartDataPoint> points = [];
+      grouped.forEach((dateStr, logs) {
+        final sum = logs.fold<double>(0.0, (s, e) => s + e.waterLevel);
+        final avg = sum / logs.length;
+        final maxTs = logs.map((e) => e.recordedAt).reduce((a, b) => a.isAfter(b) ? a : b);
+        final weekdayStr = _getIndoDayName(maxTs.toLocal().weekday);
+        points.add(ChartDataPoint(
+          timestamp: maxTs,
+          value: avg.roundToDouble(),
+          label: weekdayStr,
+        ));
+      });
+      points.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      return points.length > 7 ? points.sublist(points.length - 7) : points;
+    }
+  }
+
+  List<ChartDataPoint> _getProcessedRfData() {
+    if (_rfHistory.isEmpty) return [];
+    final sorted = List<RainfallLog>.from(_rfHistory)
+      ..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
+    final latestTimestamp = sorted.last.recordedAt;
+    
+    if (_rfRange == 'day') {
+      final cutoff = latestTimestamp.subtract(const Duration(hours: 24));
+      return sorted
+          .where((e) => e.recordedAt.isAfter(cutoff))
+          .map((e) {
+            final timeStr = '${e.recordedAt.hour.toString().padLeft(2, '0')}:${e.recordedAt.minute.toString().padLeft(2, '0')}';
+            return ChartDataPoint(
+              timestamp: e.recordedAt,
+              value: e.rainfall,
+              label: timeStr,
+            );
+          })
+          .toList();
+    } else {
+      final cutoff = latestTimestamp.subtract(const Duration(days: 7));
+      final weeklyLogs = sorted.where((e) => e.recordedAt.isAfter(cutoff)).toList();
+      final Map<String, List<RainfallLog>> grouped = {};
+      for (final log in weeklyLogs) {
+        final dateStr = DateFormat('yyyy-MM-dd').format(log.recordedAt.toLocal());
+        grouped.putIfAbsent(dateStr, () => []).add(log);
+      }
+      final List<ChartDataPoint> points = [];
+      grouped.forEach((dateStr, logs) {
+        final sum = logs.fold<double>(0.0, (s, e) => s + e.rainfall);
+        final avg = sum / logs.length;
+        final maxTs = logs.map((e) => e.recordedAt).reduce((a, b) => a.isAfter(b) ? a : b);
+        final weekdayStr = _getIndoDayName(maxTs.toLocal().weekday);
+        points.add(ChartDataPoint(
+          timestamp: maxTs,
+          value: double.parse(avg.toStringAsFixed(2)),
+          label: weekdayStr,
+        ));
+      });
+      points.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      return points.length > 7 ? points.sublist(points.length - 7) : points;
+    }
+  }
+
+  List<ChartDataPoint> _getProcessedFrData() {
+    if (_frHistory.isEmpty) return [];
+    final sorted = List<FlowRateLog>.from(_frHistory)
+      ..sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
+    final latestTimestamp = sorted.last.recordedAt;
+    
+    if (_frRange == 'day') {
+      final cutoff = latestTimestamp.subtract(const Duration(hours: 24));
+      return sorted
+          .where((e) => e.recordedAt.isAfter(cutoff))
+          .map((e) {
+            final timeStr = '${e.recordedAt.hour.toString().padLeft(2, '0')}:${e.recordedAt.minute.toString().padLeft(2, '0')}';
+            return ChartDataPoint(
+              timestamp: e.recordedAt,
+              value: e.flowRate,
+              label: timeStr,
+            );
+          })
+          .toList();
+    } else {
+      final cutoff = latestTimestamp.subtract(const Duration(days: 7));
+      final weeklyLogs = sorted.where((e) => e.recordedAt.isAfter(cutoff)).toList();
+      final Map<String, List<FlowRateLog>> grouped = {};
+      for (final log in weeklyLogs) {
+        final dateStr = DateFormat('yyyy-MM-dd').format(log.recordedAt.toLocal());
+        grouped.putIfAbsent(dateStr, () => []).add(log);
+      }
+      final List<ChartDataPoint> points = [];
+      grouped.forEach((dateStr, logs) {
+        final sum = logs.fold<double>(0.0, (s, e) => s + e.flowRate);
+        final avg = sum / logs.length;
+        final maxTs = logs.map((e) => e.recordedAt).reduce((a, b) => a.isAfter(b) ? a : b);
+        final weekdayStr = _getIndoDayName(maxTs.toLocal().weekday);
+        points.add(ChartDataPoint(
+          timestamp: maxTs,
+          value: double.parse(avg.toStringAsFixed(2)),
+          label: weekdayStr,
+        ));
+      });
+      points.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      return points.length > 7 ? points.sublist(points.length - 7) : points;
+    }
+  }
+
+  String _formatValue(double val, String unit) {
+    final displayUnit = unit == 'L/min' ? 'L/m' : unit;
+    if (unit == 'cm') {
+      return '${val.toInt()} $displayUnit';
+    }
+    if (val == val.toInt()) {
+      return '${val.toInt()} $displayUnit';
+    }
+    return '${val.toStringAsFixed(1)} $displayUnit';
+  }
+
+  Future<void> _handlePdfExport(String type, String sensorId) async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mengunduh PDF Laporan...')),
+    );
+    
+    try {
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+      
+      final startIso = DateFormat("yyyy-MM-dd'T'00:00:00.000'Z'").format(sevenDaysAgo);
+      final endIso = DateFormat("yyyy-MM-dd'T'23:59:59.000'Z'").format(now);
+      
+      final bytes = await _api.downloadReportBytes(
+        type: type,
+        startDate: startIso,
+        endDate: endIso,
+        format: 'pdf',
+        sensorId: sensorId,
+      );
+
+      final dir = await getApplicationDocumentsDirectory();
+      final filename = 'ews-report-$type-${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File('${dir.path}/$filename');
+      await file.writeAsBytes(bytes, flush: true);
+
+      final openResult = await OpenFilex.open(file.path);
+      if (!mounted) return;
+      if (openResult.type != ResultType.done) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'File tersimpan di ${file.path}, tetapi gagal dibuka otomatis: ${openResult.message}',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unduh PDF berhasil. File dibuka: ${file.path}'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengekspor laporan: ${e.toString()}'),
+          backgroundColor: AppTheme.statusBahaya,
+        ),
+      );
+    }
   }
 
   String _sensorStatus(SensorModel sensor) {
@@ -1088,17 +1327,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String liveValue,
     required Color color,
     required Widget chartWidget,
-    List<double> values = const [],
-    String unit = '',
+    required List<ChartDataPoint> processedPoints,
+    required String range,
+    required ValueChanged<String> onRangeChanged,
+    required String unit,
+    required String telemetryType,
+    required String sensorId,
   }) {
     double? minVal;
     double? avgVal;
     double? latestVal;
-    if (values.isNotEmpty) {
+    if (processedPoints.isNotEmpty) {
+      final values = processedPoints.map((e) => e.value).toList();
       minVal = values.reduce((a, b) => a < b ? a : b);
       avgVal = values.reduce((a, b) => a + b) / values.length;
       latestVal = values.last;
     }
+
+    final bool isRain = telemetryType == 'rainfall';
+    final accentColor = isRain ? const Color(0xFF06B6D4) : color;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -1109,7 +1356,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+            color: const Color(0xFF0F172A).withAlpha(8),
             spreadRadius: 2,
             blurRadius: 12,
             offset: const Offset(0, 4),
@@ -1122,76 +1369,138 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withAlpha(26),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              Expanded(
                 child: Text(
-                  'Terkini: $liveValue',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () => _handlePdfExport(telemetryType == 'flow_rate' ? 'combined' : telemetryType, sensorId),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF1F2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFFECDD3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.picture_as_pdf,
+                        size: 11,
+                        color: Color(0xFFBE123C),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'PDF',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFBE123C),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.only(bottom: 10),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9))),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildPillTab(
+                        label: 'Day',
+                        isActive: range == 'day',
+                        onTap: () => onRangeChanged('day'),
+                      ),
+                      _buildPillTab(
+                        label: 'Week',
+                        isActive: range == 'week',
+                        onTap: () => onRangeChanged('week'),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildLiveBadge(telemetryType, liveValue),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 140,
+            height: 200,
             child: _loadingHistory
                 ? const Center(
                     child: CircularProgressIndicator(strokeWidth: 3),
                   )
                 : _historyError != null
-                ? const Center(
-                    child: Text(
-                      'Gagal memuat data riwayat.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.statusBahaya,
-                      ),
-                    ),
-                  )
-                : chartWidget,
+                    ? const Center(
+                        child: Text(
+                          'Gagal memuat data riwayat.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.statusBahaya,
+                          ),
+                        ),
+                      )
+                    : processedPoints.isEmpty
+                        ? _buildEmptyState(telemetryType)
+                        : chartWidget,
           ),
-          if (values.isNotEmpty && !_loadingHistory && _historyError == null) ...[
+          if (processedPoints.isNotEmpty && !_loadingHistory && _historyError == null) ...[
             const SizedBox(height: 16),
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
             const SizedBox(height: 12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatIndicator(
-                  label: 'MIN',
-                  value: unit == 'cm' 
-                      ? '${minVal!.toInt()} $unit' 
-                      : '${minVal!.toStringAsFixed(1)} $unit',
-                  color: const Color(0xFF64748B),
+                Expanded(
+                  child: _buildStatIndicator(
+                    label: 'MINIMUM',
+                    value: _formatValue(minVal!, unit),
+                    color: const Color(0xFF3B82F6),
+                    telemetryType: telemetryType,
+                    statType: 'min',
+                  ),
                 ),
-                _buildStatIndicator(
-                  label: 'RATA-RATA',
-                  value: unit == 'cm' 
-                      ? '${avgVal!.toInt()} $unit' 
-                      : '${avgVal!.toStringAsFixed(1)} $unit',
-                  color: color,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatIndicator(
+                    label: 'RATA-RATA',
+                    value: _formatValue(avgVal!, unit),
+                    color: accentColor,
+                    telemetryType: telemetryType,
+                    statType: 'avg',
+                  ),
                 ),
-                _buildStatIndicator(
-                  label: 'TERKINI',
-                  value: unit == 'cm' 
-                      ? '${latestVal!.toInt()} $unit' 
-                      : '${latestVal!.toStringAsFixed(1)} $unit',
-                  color: const Color(0xFF22C55E),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatIndicator(
+                    label: 'SAAT INI',
+                    value: _formatValue(latestVal!, unit),
+                    color: isRain ? const Color(0xFF06B6D4) : const Color(0xFF10B981),
+                    telemetryType: telemetryType,
+                    statType: 'latest',
+                  ),
                 ),
               ],
             ),
@@ -1201,32 +1510,307 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildPillTab({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: isActive
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(10),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+            color: isActive ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveBadge(String telemetryType, String liveValue) {
+    if (telemetryType == 'flow_rate') {
+      final double val = double.tryParse(liveValue.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+      final bool isHigh = val >= 20.0;
+      final bool isMed = val >= 10.0 && val < 20.0;
+      
+      final String label = isHigh ? 'Debit Tinggi' : isMed ? 'Debit Sedang' : 'Debit Rendah';
+      final Color bg = isHigh 
+          ? const Color(0xFFFFF1F2) 
+          : isMed 
+              ? const Color(0xFFFFFBEB) 
+              : const Color(0xFFECFDF5);
+      final Color border = isHigh 
+          ? const Color(0xFFFECDD3) 
+          : isMed 
+              ? const Color(0xFFFEF3C7) 
+              : const Color(0xFFD1FAE5);
+      final Color text = isHigh 
+          ? const Color(0xFFBE123C) 
+          : isMed 
+              ? const Color(0xFFB45309) 
+              : const Color(0xFF047857);
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: border),
+        ),
+        child: Text(
+          '$label ($liveValue)',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: text,
+          ),
+        ),
+      );
+    }
+
+    final bool isRain = telemetryType == 'rainfall';
+    final Color badgeBg = isRain ? const Color(0xFFECFEFF) : const Color(0xFFEFF6FF);
+    final Color badgeBorder = isRain ? const Color(0xFFCFFAFE) : const Color(0xFFDBEAFE);
+    final Color badgeText = isRain ? const Color(0xFF0E7490) : const Color(0xFF1E40AF);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: badgeBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: badgeBorder),
+      ),
+      child: Text(
+        'Live: $liveValue',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: badgeText,
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatIndicator({
     required String label,
     required String value,
     required Color color,
+    required String telemetryType,
+    required String statType,
   }) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF94A3B8),
-            letterSpacing: 0.5,
+    final bool isRain = telemetryType == 'rainfall';
+    final Color accentColor = isRain ? const Color(0xFF06B6D4) : const Color(0xFF10B981);
+    
+    Widget? leftIcon;
+    BoxDecoration cardDeco;
+    
+    if (statType == 'min') {
+      leftIcon = Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: const Icon(
+          Icons.arrow_downward,
+          size: 12,
+          color: Color(0xFF3B82F6),
+        ),
+      );
+      
+      cardDeco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      );
+    } else if (statType == 'avg') {
+      leftIcon = Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          color: isRain ? const Color(0xFFECFEFF) : const Color(0xFFECFDF5),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Icon(
+          Icons.swap_horiz,
+          size: 12,
+          color: accentColor,
+        ),
+      );
+      
+      cardDeco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      );
+    } else {
+      leftIcon = Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          color: isRain ? const Color(0xFFECFEFF) : const Color(0xFFECFDF5),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Center(
+          child: Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: accentColor,
+              shape: BoxShape.circle,
+            ),
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
+      );
+      
+      cardDeco = BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isRain ? const Color(0xFFCFFAFE) : const Color(0xFFD1FAE5),
         ),
-      ],
+      );
+    }
+
+    return Container(
+      decoration: cardDeco.copyWith(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(3),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          if (statType == 'latest')
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3.5,
+              child: Container(
+                color: accentColor,
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              statType == 'latest' ? 12 : 10,
+              8,
+              10,
+              8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    leftIcon,
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF94A3B8),
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: statType == 'latest' ? (isRain ? const Color(0xFF0E7490) : const Color(0xFF047857)) : const Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String telemetryType) {
+    String desc = 'Belum ada data ketinggian air yang masuk untuk sensor ini.';
+    if (telemetryType == 'rainfall') {
+      desc = 'Belum ada data curah hujan yang masuk untuk sensor ini.';
+    } else if (telemetryType == 'flow_rate') {
+      desc = 'Belum ada data debit air yang masuk untuk sensor ini.';
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC).withAlpha(128),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFCBD5E1),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.inbox_outlined,
+              color: Color(0xFF94A3B8),
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'No Data Available',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            desc,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF94A3B8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1240,11 +1824,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (selectedSensor == null) {
       return const SizedBox();
     }
+    
     final waterLevel = selectedSensor.waterLevel ?? 0.0;
     final rainfall = selectedSensor.rainfall ?? 0.0;
-    final currentFlow = _frHistory.isNotEmpty
-        ? _frHistory.last.flowRate
+    final processedFr = _getProcessedFrData();
+    final currentFlow = processedFr.isNotEmpty
+        ? processedFr.last.value
         : 0.0;
+
+    final processedWl = _getProcessedWlData();
+    final processedRf = _getProcessedRfData();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1261,42 +1850,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         _buildSingleChartCard(
-          title: 'Grafik Tinggi Air',
+          title: 'Grafik Ketinggian Air',
           liveValue: '${waterLevel.toInt()} cm',
           color: AppTheme.accentBlue,
-          values: _wlHistory.map((e) => e.waterLevel).toList(),
+          processedPoints: processedWl,
+          range: _wlRange,
+          onRangeChanged: (val) {
+            setState(() => _wlRange = val);
+          },
           unit: 'cm',
+          telemetryType: 'water_level',
+          sensorId: selectedSensor.sensorId,
           chartWidget: _buildFlChart(
-            _wlHistory,
-            (log) => (log as WaterLevelLog).waterLevel,
+            processedWl,
             AppTheme.accentBlue,
             'cm',
+            'water_level',
           ),
         ),
         _buildSingleChartCard(
           title: 'Grafik Curah Hujan',
-          liveValue: '${rainfall.toStringAsFixed(1)} mm/jam',
-          color: const Color(0xFF10B981),
-          values: _rfHistory.map((e) => e.rainfall).toList(),
+          liveValue: '${rainfall.toStringAsFixed(1)} mm',
+          color: const Color(0xFF06B6D4),
+          processedPoints: processedRf,
+          range: _rfRange,
+          onRangeChanged: (val) {
+            setState(() => _rfRange = val);
+          },
           unit: 'mm',
+          telemetryType: 'rainfall',
+          sensorId: selectedSensor.sensorId,
           chartWidget: _buildFlChart(
-            _rfHistory,
-            (log) => (log as RainfallLog).rainfall,
-            const Color(0xFF10B981),
+            processedRf,
+            const Color(0xFF3B82F6),
             'mm',
+            'rainfall',
           ),
         ),
         _buildSingleChartCard(
-          title: 'Grafik Debit Aliran',
-          liveValue: '${currentFlow.toStringAsFixed(1)} LPM',
-          color: const Color(0xFFF59E0B),
-          values: _frHistory.map((e) => e.flowRate).toList(),
-          unit: 'LPM',
+          title: 'Grafik Debit Air',
+          liveValue: '${currentFlow.toStringAsFixed(1)} L/m',
+          color: const Color(0xFF10B981),
+          processedPoints: processedFr,
+          range: _frRange,
+          onRangeChanged: (val) {
+            setState(() => _frRange = val);
+          },
+          unit: 'L/m',
+          telemetryType: 'flow_rate',
+          sensorId: selectedSensor.sensorId,
           chartWidget: _buildFlChart(
-            _frHistory,
-            (log) => (log as FlowRateLog).flowRate,
-            const Color(0xFFF59E0B),
-            'LPM',
+            processedFr,
+            const Color(0xFF3B82F6),
+            'L/m',
+            'flow_rate',
           ),
         ),
         const SizedBox(height: 8),
@@ -1356,33 +1963,136 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFlChart(
-    List<dynamic> logs,
-    double Function(dynamic) getValue,
+    List<ChartDataPoint> processedData,
     Color lineColor,
     String unit,
+    String telemetryType,
   ) {
-    if (logs.isEmpty) {
-      IconData iconData = Icons.waves;
-      if (unit == 'mm') iconData = Icons.umbrella;
-      if (unit == 'LPM') iconData = Icons.speed;
+    if (processedData.isEmpty) {
+      return const SizedBox();
+    }
 
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(iconData, color: const Color(0xFF94A3B8), size: 28),
-            const SizedBox(height: 6),
-            Text(
-              'Tidak ada data dalam 24 jam terakhir.',
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+    if (telemetryType == 'flow_rate') {
+      final barGroups = processedData.asMap().entries.map((e) {
+        return BarChartGroupData(
+          x: e.key,
+          barRods: [
+            BarChartRodData(
+              toY: e.value.value,
+              color: const Color(0xFF3B82F6),
+              width: 14,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(4),
+              ),
             ),
           ],
+        );
+      }).toList();
+
+      final maxVal = processedData.map((s) => s.value).reduce((a, b) => a > b ? a : b);
+      final paddingY = maxVal * 0.15 == 0 ? 5.0 : maxVal * 0.15;
+
+      return BarChart(
+        BarChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) =>
+                const FlLine(color: Color(0xFFF1F5F9), strokeWidth: 1),
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 32,
+                getTitlesWidget: (value, meta) {
+                  return SideTitleWidget(
+                    meta: meta,
+                    space: 6,
+                    child: Text(
+                      '${value.toInt()}',
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 22,
+                interval: (barGroups.length / 4).clamp(1.0, 100.0),
+                getTitlesWidget: (value, meta) {
+                  final idx = value.toInt();
+                  if (idx >= 0 && idx < processedData.length) {
+                    return SideTitleWidget(
+                      meta: meta,
+                      space: 6,
+                      child: Text(
+                        processedData[idx].label,
+                        style: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          minY: 0.0,
+          maxY: maxVal + paddingY,
+          barGroups: barGroups,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              tooltipBorderRadius: BorderRadius.circular(8),
+              getTooltipColor: (group) => const Color(0xFF0F172A).withAlpha(230),
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final pt = processedData[groupIndex];
+                final formattedTime = DateFormat('HH:mm:ss').format(pt.timestamp);
+                return BarTooltipItem(
+                  '${rod.toY.toStringAsFixed(1)} $unit\n',
+                  const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: formattedTime,
+                      style: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontWeight: FontWeight.normal,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       );
     }
 
-    final spots = logs.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), getValue(e.value));
+    final spots = processedData.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), e.value.value);
     }).toList();
 
     final values = spots.map((s) => s.y).toList();
@@ -1391,13 +2101,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final rangeY = maxY - minY;
     final paddingY = rangeY == 0 ? 5.0 : rangeY * 0.15;
 
+    final chartColor = const Color(0xFF3B82F6);
+
     return LineChart(
       LineChartData(
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
           getDrawingHorizontalLine: (value) =>
-              FlLine(color: const Color(0xFFF1F5F9), strokeWidth: 1),
+              const FlLine(color: Color(0xFFF1F5F9), strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           show: true,
@@ -1434,26 +2146,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               interval: (spots.length / 4).clamp(1.0, 100.0),
               getTitlesWidget: (value, meta) {
                 final idx = value.toInt();
-                if (idx >= 0 && idx < logs.length) {
-                  DateTime? time;
-                  final log = logs[idx];
-                  if (log is WaterLevelLog) {
-                    time = log.recordedAt;
-                  } else if (log is RainfallLog) {
-                    time = log.recordedAt;
-                  } else if (log is FlowRateLog) {
-                    time = log.recordedAt;
-                  } else {
-                    final rawTime = log.recordedAt;
-                    time = rawTime is DateTime
-                        ? rawTime
-                        : DateTime.parse(rawTime.toString());
-                  }
+                if (idx >= 0 && idx < processedData.length) {
                   return SideTitleWidget(
                     meta: meta,
                     space: 6,
                     child: Text(
-                      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                      processedData[idx].label,
                       style: const TextStyle(
                         color: Color(0xFF94A3B8),
                         fontSize: 10,
@@ -1469,7 +2167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         borderData: FlBorderData(show: false),
         minX: 0,
-        maxX: logs.length > 1 ? (logs.length - 1).toDouble() : 1.0,
+        maxX: spots.length > 1 ? (spots.length - 1).toDouble() : 1.0,
         minY: (minY - paddingY).clamp(0.0, double.infinity),
         maxY: maxY + paddingY,
         lineTouchData: LineTouchData(
@@ -1479,18 +2177,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Color(0xFF0F172A).withAlpha(230),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
-                final log = logs[spot.spotIndex];
-                DateTime? dt;
-                if (log is WaterLevelLog) {
-                  dt = log.recordedAt;
-                } else if (log is RainfallLog) {
-                  dt = log.recordedAt;
-                } else if (log is FlowRateLog) {
-                  dt = log.recordedAt;
-                }
-                final formattedTime = dt != null
-                    ? DateFormat('HH:mm:ss').format(dt)
-                    : '';
+                final pt = processedData[spot.spotIndex];
+                final formattedTime = DateFormat('HH:mm:ss').format(pt.timestamp);
                 return LineTooltipItem(
                   '${spot.y.toStringAsFixed(1)} $unit\n',
                   const TextStyle(
@@ -1517,25 +2205,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: lineColor,
-            barWidth: 3,
+            color: chartColor,
+            barWidth: 2.5,
             isStrokeCapRound: true,
-            dotData: FlDotData(
-              show: spots.length <= 15,
-              getDotPainter: (spot, percent, barData, index) =>
-                  FlDotCirclePainter(
-                    radius: 4,
-                    color: Colors.white,
-                    strokeWidth: 2,
-                    strokeColor: lineColor,
-                  ),
-            ),
+            dotData: const FlDotData(show: false),
+            showingIndicators: const [],
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  lineColor.withValues(alpha: 0.25),
-                  lineColor.withValues(alpha: 0.0),
+                  chartColor.withValues(alpha: 0.25),
+                  chartColor.withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
