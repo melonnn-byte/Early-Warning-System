@@ -6,6 +6,7 @@ import { useState } from "react";
 import { adminNavLinks } from "@/constants";
 import { cn } from "@/lib/utils";
 import { X, LogOut, Menu } from "lucide-react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type NavIconName = "dashboard" | "sensors" | "thresholds" | "alerts" | "notifications" | "reports" | "users" | "contacts";
 
@@ -96,12 +97,26 @@ interface BottomNavbarProps {
 export function BottomNavbar({ unreadCount, onLogoutClick, userName }: BottomNavbarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { t, language } = useLanguage();
+
+  const getAdminTranslationKey = (href: string) => {
+    const pathPart = href.replace("/admin/", "");
+    if (pathPart === "dashboard") return "nav.adminDashboard";
+    if (pathPart === "sensors") return "nav.adminSensors";
+    if (pathPart === "thresholds") return "nav.adminThresholds";
+    if (pathPart === "alerts") return "nav.adminAlerts";
+    if (pathPart === "notifications") return "nav.adminNotifications";
+    if (pathPart === "reports") return "nav.adminReports";
+    if (pathPart === "users") return "nav.adminUsers";
+    if (pathPart === "emergency-contacts") return "nav.adminEmergencyContacts";
+    return `nav.${pathPart}`;
+  };
 
   const mainTabs = [
-    { href: "/admin/dashboard", label: "Dasbor", icon: "dashboard" as NavIconName },
-    { href: "/admin/sensors", label: "Sensor", icon: "sensors" as NavIconName },
-    { href: "/admin/alerts", label: "Peringatan", icon: "alerts" as NavIconName },
-    { href: "/admin/notifications", label: "Notifikasi", icon: "notifications" as NavIconName },
+    { href: "/admin/dashboard", label: t("nav.adminDashboard"), icon: "dashboard" as NavIconName },
+    { href: "/admin/sensors", label: t("nav.adminSensors"), icon: "sensors" as NavIconName },
+    { href: "/admin/alerts", label: t("nav.adminAlerts"), icon: "alerts" as NavIconName },
+    { href: "/admin/notifications", label: t("nav.adminNotifications"), icon: "notifications" as NavIconName },
   ];
 
   const isMainTabActive = mainTabs.some((tab) => pathname === tab.href);
@@ -170,7 +185,7 @@ export function BottomNavbar({ unreadCount, onLogoutClick, userName }: BottomNav
         <div className="w-12 h-1 bg-slate-800 rounded-full mx-auto mb-4" />
 
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Navigasi Admin</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">{language === "en" ? "Admin Navigation" : "Navigasi Admin"}</h3>
           <button
             onClick={() => setIsOpen(false)}
             className="p-1 rounded-lg bg-slate-850 border border-slate-800 text-slate-400 hover:text-white"
@@ -208,7 +223,7 @@ export function BottomNavbar({ unreadCount, onLogoutClick, userName }: BottomNav
                     className={cn("h-4.5 w-4.5", isActive ? "text-blue-500" : "text-slate-400")}
                   />
                 </div>
-                <span className="text-[9px] text-center truncate w-full">{item.label}</span>
+                <span className="text-[9px] text-center truncate w-full">{t(getAdminTranslationKey(item.href))}</span>
               </Link>
             );
           })}
@@ -235,7 +250,7 @@ export function BottomNavbar({ unreadCount, onLogoutClick, userName }: BottomNav
             className="flex items-center gap-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 px-3.5 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 active:scale-[0.98] transition-all"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span>Logout</span>
+            <span>{t("common.logout")}</span>
           </button>
         </div>
       </div>

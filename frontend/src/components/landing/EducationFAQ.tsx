@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, Backpack, ChevronDown, CircleCheckBig, ShieldAlert } from "lucide-react";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const emergencyPreparation = [
   {
@@ -59,16 +60,57 @@ const faqs = [
 
 export function EducationFAQ() {
   const [openFaq, setOpenFaq] = useState(0);
+  const { t } = useLanguage();
+
+  const getPrepTranslations = (tone: string) => {
+    if (tone === "danger") {
+      return {
+        eyebrow: t("landing.education.prioritasTinggi"),
+        title: t("landing.education.guide1Title"),
+        description: t("landing.education.guide1Desc"),
+        items: [
+          t("landing.education.guide1Item1"),
+          t("landing.education.guide1Item2"),
+          t("landing.education.guide1Item3"),
+          t("landing.education.guide1Item4"),
+        ]
+      };
+    } else {
+      return {
+        eyebrow: t("landing.education.siagaCepat"),
+        title: t("landing.education.guide2Title"),
+        description: t("landing.education.guide2Desc"),
+        items: [
+          t("landing.education.guide2Item1"),
+          t("landing.education.guide2Item2"),
+          t("landing.education.guide2Item3"),
+          t("landing.education.guide2Item4"),
+        ]
+      };
+    }
+  };
+
+  const getFaqTranslations = (index: number) => {
+    switch (index) {
+      case 0:
+        return { q: t("landing.education.faq1Q"), a: t("landing.education.faq1A") };
+      case 1:
+        return { q: t("landing.education.faq2Q"), a: t("landing.education.faq2A") };
+      case 2:
+        return { q: t("landing.education.faq3Q"), a: t("landing.education.faq3A") };
+      default:
+        return { q: t("landing.education.faq4Q"), a: t("landing.education.faq4A") };
+    }
+  };
 
   return (
     <section id="edukasi" className="scroll-mt-24 bg-slate-50">
       <div className="mx-auto w-full max-w-6xl px-4 py-20 md:px-8 lg:px-16">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Edukasi & FAQ</p>
-          <h2 className="mt-2 text-3xl font-bold text-slate-900 md:text-4xl">Panduan Kesiapsiagaan dan Pertanyaan Umum</h2>
+          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">{t("landing.education.eyebrow")}</p>
+          <h2 className="mt-2 text-3xl font-bold text-slate-900 md:text-4xl">{t("landing.education.title")}</h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-600 md:text-base">
-            Ringkasan yang lebih mudah dipindai untuk membantu pengguna bertindak cepat saat status berubah dan ketika
-            butuh informasi penting dalam hitungan detik.
+            {t("landing.education.description")}
           </p>
         </div>
 
@@ -79,13 +121,14 @@ export function EducationFAQ() {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Part A</p>
-              <h3 className="text-xl font-bold text-slate-900">Emergency Preparation</h3>
+              <h3 className="text-xl font-bold text-slate-900">{t("landing.education.partA")}</h3>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             {emergencyPreparation.map((item) => {
               const Icon = item.icon;
+              const trans = getPrepTranslations(item.tone);
 
               return (
                 <article
@@ -99,15 +142,15 @@ export function EducationFAQ() {
 
                     <div className="min-w-0 flex-1">
                       <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${item.tone === "danger" ? "text-rose-700" : "text-blue-700"}`}>
-                        {item.eyebrow}
+                        {trans.eyebrow}
                       </p>
-                      <h4 className="mt-1 text-lg font-semibold text-slate-900">{item.title}</h4>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
+                      <h4 className="mt-1 text-lg font-semibold text-slate-900">{trans.title}</h4>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600">{trans.description}</p>
                     </div>
                   </div>
 
                   <ul className="mt-5 space-y-3">
-                    {item.items.map((point) => (
+                    {trans.items.map((point) => (
                       <li key={point} className="flex gap-3 text-sm leading-relaxed text-slate-700">
                         <span
                           className={`mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
@@ -133,13 +176,14 @@ export function EducationFAQ() {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Part B</p>
-              <h3 className="text-xl font-bold text-slate-900">Pertanyaan yang Sering Diajukan (FAQ)</h3>
+              <h3 className="text-xl font-bold text-slate-900">{t("landing.education.partB")}</h3>
             </div>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md shadow-slate-200/60">
             {faqs.map((item, index) => {
               const isOpen = openFaq === index;
+              const trans = getFaqTranslations(index);
 
               return (
                 <div key={item.q} className={index === faqs.length - 1 ? "" : "border-b border-slate-200"}>
@@ -151,7 +195,7 @@ export function EducationFAQ() {
                     aria-controls={`faq-panel-${index}`}
                     id={`faq-trigger-${index}`}
                   >
-                    <span className="text-sm font-semibold text-slate-900 md:text-base">{item.q}</span>
+                    <span className="text-sm font-semibold text-slate-900 md:text-base">{trans.q}</span>
                     <span
                       className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-transform duration-200 ${
                         isOpen ? "rotate-180 text-blue-600" : "rotate-0"
@@ -170,7 +214,7 @@ export function EducationFAQ() {
                     }`}
                   >
                     <div className="min-h-0">
-                      <div className="px-5 pb-5 text-sm leading-relaxed text-slate-600">{item.a}</div>
+                      <div className="px-5 pb-5 text-sm leading-relaxed text-slate-600">{trans.a}</div>
                     </div>
                   </div>
                 </div>

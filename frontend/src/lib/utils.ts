@@ -8,7 +8,7 @@ const defaultThreshold: ThresholdConfig = {
 };
 
 export interface RainfallCategory {
-  label: "Ringan" | "Sedang" | "Lebat";
+  label: string;
   detail: string;
   color: string;
 }
@@ -28,13 +28,13 @@ export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function formatTimestamp(date: string) {
+export function formatTimestamp(date: string, locale: 'id' | 'en' = 'id') {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) {
-    return "Waktu tidak valid";
+    return locale === 'en' ? "Invalid time" : "Waktu tidak valid";
   }
 
-  return parsed.toLocaleString("id-ID", {
+  return parsed.toLocaleString(locale === 'en' ? "en-US" : "id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Jakarta",
@@ -60,18 +60,21 @@ export function isSensorOnline(
   return !isSensorOffline(lastSeenAt, nowMs, thresholdMs);
 }
 
-export function formatRelativeTime(dateValue: string | Date | null | undefined, nowMs = Date.now()) {
+export function formatRelativeTime(dateValue: string | Date | null | undefined, nowMs = Date.now(), lang: 'id' | 'en' = 'id') {
   const parsed = toTimestamp(dateValue);
-  if (parsed === null) return "Belum ada ingest";
+  if (parsed === null) return lang === 'en' ? "No data ingested" : "Belum ada ingest";
 
   const diffSeconds = Math.round((parsed - nowMs) / 1000);
   const absSeconds = Math.abs(diffSeconds);
 
   if (absSeconds < 45) {
+    if (lang === 'en') {
+      return diffSeconds <= 0 ? "a few seconds ago" : "in a few seconds";
+    }
     return diffSeconds <= 0 ? "beberapa detik yang lalu" : "dalam beberapa detik";
   }
 
-  const formatter = new Intl.RelativeTimeFormat("id-ID", { numeric: "auto" });
+  const formatter = new Intl.RelativeTimeFormat(lang === 'en' ? "en-US" : "id-ID", { numeric: "auto" });
   const diffMinutes = Math.round(diffSeconds / 60);
   if (Math.abs(diffMinutes) < 60) return formatter.format(diffMinutes, "minute");
 
@@ -106,14 +109,26 @@ export function getRiskLevelFromLevel(levelCm: number): UserRiskLevel {
   return "normal";
 }
 
-export function getRainfallCategory(rainfallMmPerHour: number): RainfallCategory {
+export function getRainfallCategory(rainfallMmPerHour: number, lang: 'id' | 'en' = 'id'): RainfallCategory {
   if (rainfallMmPerHour <= 5) {
-    return { label: "Ringan", detail: "0-5 mm/jam", color: "text-emerald-700 bg-emerald-100" };
+    return {
+      label: lang === 'en' ? "Light" : "Ringan",
+      detail: lang === 'en' ? "0-5 mm/hr" : "0-5 mm/jam",
+      color: "text-emerald-700 bg-emerald-100"
+    };
   }
 
   if (rainfallMmPerHour <= 20) {
-    return { label: "Sedang", detail: ">5-20 mm/jam", color: "text-amber-700 bg-amber-100" };
+    return {
+      label: lang === 'en' ? "Moderate" : "Sedang",
+      detail: lang === 'en' ? ">5-20 mm/hr" : ">5-20 mm/jam",
+      color: "text-amber-700 bg-amber-100"
+    };
   }
 
-  return { label: "Lebat", detail: ">20 mm/jam", color: "text-rose-700 bg-rose-100" };
+  return {
+    label: lang === 'en' ? "Heavy" : "Lebat",
+    detail: lang === 'en' ? ">20 mm/hr" : ">20 mm/jam",
+    color: "text-rose-700 bg-rose-100"
+  };
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import { adminNavLinks } from "@/constants";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type NavIconName = "dashboard" | "sensors" | "thresholds" | "alerts" | "notifications" | "reports" | "users" | "contacts";
 
@@ -100,6 +101,20 @@ function CollapseIcon({ collapsed, className }: { collapsed: boolean; className?
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { t, language } = useLanguage();
+
+  const getAdminTranslationKey = (href: string) => {
+    const pathPart = href.replace("/admin/", "");
+    if (pathPart === "dashboard") return "nav.adminDashboard";
+    if (pathPart === "sensors") return "nav.adminSensors";
+    if (pathPart === "thresholds") return "nav.adminThresholds";
+    if (pathPart === "alerts") return "nav.adminAlerts";
+    if (pathPart === "notifications") return "nav.adminNotifications";
+    if (pathPart === "reports") return "nav.adminReports";
+    if (pathPart === "users") return "nav.adminUsers";
+    if (pathPart === "emergency-contacts") return "nav.adminEmergencyContacts";
+    return `nav.${pathPart}`;
+  };
 
   return (
     <aside
@@ -127,7 +142,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <div className="min-w-0">
                 <p className="truncate text-[0.72rem] font-medium uppercase tracking-[0.18em] text-slate-500">Early Warning</p>
                 <h2 className="truncate text-[1.2rem] font-bold leading-tight tracking-wide text-slate-900">Flood Guard</h2>
-                <p className="truncate text-xs uppercase tracking-[0.18em] text-slate-400">Dashboard Admin</p>
+                <p className="truncate text-xs uppercase tracking-[0.18em] text-slate-400">{language === "en" ? "Admin Dashboard" : "Dashboard Admin"}</p>
               </div>
             </div>
           ) : (
@@ -151,7 +166,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <div className="relative z-10 mb-3 px-2">
           {!collapsed ? (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Menu Admin</span>
+              <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{language === "en" ? "Admin Menu" : "Menu Admin"}</span>
               <span className="h-px flex-1 bg-linear-to-r from-slate-200 to-transparent" />
             </div>
           ) : (
@@ -165,12 +180,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               {(() => {
                 const iconName = iconByPath[item.href] ?? "dashboard";
                 const isActive = pathname === item.href;
+                const translatedLabel = t(getAdminTranslationKey(item.href));
 
                 return (
                   <Link
                     href={item.href}
-                    title={item.label}
-                    aria-label={item.label}
+                    title={translatedLabel}
+                    aria-label={translatedLabel}
                     className={cn(
                       "group relative mx-2 flex items-center gap-3 rounded-xl border border-transparent px-4 py-2.5 text-sm font-medium transition-all duration-200",
                       "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
@@ -193,7 +209,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         isActive ? "text-white" : "text-slate-400 group-hover:text-slate-700",
                       )}
                     />
-                    {!collapsed && <span className="text-[0.95rem] font-medium">{item.label}</span>}
+                    {!collapsed && <span className="text-[0.95rem] font-medium">{translatedLabel}</span>}
                     {!collapsed && (
                       <span
                         className={cn(
@@ -214,9 +230,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="mx-2 mb-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
               <div className="flex items-center gap-2.5 text-slate-900">
                 <Activity className="h-4 w-4 text-blue-600" aria-hidden="true" />
-                <p className="text-xs font-semibold tracking-wide text-slate-800">Monitoring banjir real-time</p>
+                <p className="text-xs font-semibold tracking-wide text-slate-800">{t("common.systemMonitored")}</p>
               </div>
-              <p className="mt-1.5 text-[11px] leading-5 text-slate-500">Status sistem dipantau 24/7 untuk respons cepat.</p>
+              <p className="mt-1.5 text-[11px] leading-5 text-slate-500">{t("common.systemMonitoredDesc")}</p>
             </div>
           ) : (
             <div className="mx-auto mb-4 mt-1 flex flex-col items-center gap-1.5">
@@ -235,15 +251,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-semibold text-slate-600 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900"
             >
               <CollapseIcon collapsed={false} className="h-3.5 w-3.5" />
-              <span>Ciutkan Sidebar</span>
+              <span>{t("common.collapseSidebar")}</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={onToggle}
               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900"
-              aria-label="Buka sidebar"
-              title="Buka sidebar"
+              aria-label={t("common.collapseSidebar")}
+              title={t("common.collapseSidebar")}
             >
               <CollapseIcon collapsed className="h-4 w-4" />
             </button>

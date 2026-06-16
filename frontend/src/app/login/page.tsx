@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserRole } from "@/types/user";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useLanguage, LanguageToggle } from "@/lib/LanguageContext";
 
 const getRedirectPathByRole = (role: UserRole | string) => {
   const normalized = String(role ?? "").toUpperCase();
@@ -20,6 +21,7 @@ const getRedirectPathByRole = (role: UserRole | string) => {
 export default function LoginPage() {
   const router = useRouter();
   const { login, loginWithGoogle } = useAuth();
+  const { t, language } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +54,7 @@ export default function LoginPage() {
     }
 
     if (!result.user) {
-      setError("Data user tidak ditemukan setelah login.");
+      setError(t("auth.userNotFound"));
       setIsSubmitting(false);
       return;
     }
@@ -64,11 +66,11 @@ export default function LoginPage() {
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!email || !password) {
-      setError("Email dan password wajib diisi.");
+      setError(t("auth.emailPasswordRequired"));
       return;
     }
 
-    await loginAndRedirect(email, password, "Login berhasil. Mengalihkan ke dashboard...");
+    await loginAndRedirect(email, password, t("auth.loginSuccess"));
   };
 
   const onGoogleLogin = async () => {
@@ -84,7 +86,7 @@ export default function LoginPage() {
       return;
     }
 
-    setSuccess("Login dengan Google berhasil. Mengalihkan ke dashboard...");
+    setSuccess(t("auth.loginSuccess"));
     setTimeout(() => {
       if (result.user) {
         router.push(getRedirectPathByRole(result.user.role));
@@ -98,7 +100,7 @@ export default function LoginPage() {
     await loginAndRedirect(
       quickEmail,
       quickPass,
-      "Login cepat berhasil. Mengalihkan ke dashboard...",
+      t("auth.loginSuccess"),
     );
   };
 
@@ -128,19 +130,19 @@ export default function LoginPage() {
                     EWS Flood Guard
                   </p>
                   <h1 className="mt-4 text-xl font-bold leading-tight text-white lg:text-2xl">
-                    Masuk ke Platform Monitoring Banjir Real-Time
+                    {t("auth.loginSideTitle")}
                   </h1>
                   <p className="mt-3 text-xs leading-5 text-blue-100">
-                    Akses dashboard untuk memantau sensor dan merespons peringatan dengan cepat.
+                    {t("auth.loginSideSubtitle")}
                   </p>
                 </div>
               </div>
 
               <ul className="mt-8 space-y-2.5 text-xs text-blue-50">
-                {[
-                  "Monitoring sensor 24/7",
-                  "Akses koordinasi tanggap darurat",
-                ].map((item) => (
+                {(language === "en"
+                  ? ["24/7 sensor monitoring", "Access emergency response coordination"]
+                  : ["Monitoring sensor 24/7", "Akses koordinasi tanggap darurat"]
+                ).map((item) => (
                   <li
                     key={item}
                     className="flex items-center gap-2.5 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2.5 backdrop-blur-sm"
@@ -161,15 +163,16 @@ export default function LoginPage() {
           <section className="flex-1 bg-white px-6 py-8 sm:px-10 md:px-12 md:py-10 lg:px-16">
             <div className="mx-auto flex h-full w-full max-w-xl flex-col justify-center">
               
-              {/* Back Button */}
-              <div className="mb-6">
+              {/* Back Button & Language Switcher */}
+              <div className="mb-6 flex justify-between items-center">
                 <Link
                   href="/"
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-white hover:text-slate-800 hover:shadow-xs"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Kembali</span>
+                  <span>{t("common.back")}</span>
                 </Link>
+                <LanguageToggle isHeroMode={false} />
               </div>
 
               {/* Mobile Brand Header (only visible on mobile/portrait-tablet) */}
@@ -181,17 +184,17 @@ export default function LoginPage() {
                   EWS Flood Guard
                 </span>
                 <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900">
-                  Masuk Platform
+                  {t("auth.loginTitle")}
                 </h1>
                 <p className="mt-1 text-xs text-slate-500">
-                  Akses dashboard monitoring banjir real-time.
+                  {t("auth.loginSubtitle")}
                 </p>
               </div>
 
               {/* Desktop Header */}
               <div className="hidden md:block">
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">Login</h2>
-                <p className="mt-1.5 text-sm text-slate-500">Masuk ke akun kamu untuk mengakses layanan EWS.</p>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 lg:text-3xl">{t("auth.loginBtn")}</h2>
+                <p className="mt-1.5 text-sm text-slate-500">{t("auth.loginSubtitle")}</p>
               </div>
 
               <button
@@ -206,19 +209,19 @@ export default function LoginPage() {
                   <path fill="#FBBC05" d="M12 22c2.68 0 5.14-.97 7.03-2.58l-3.25-2.67c-1.16.78-2.66 1.24-3.78 1.24-3.18 0-5.88-2.11-6.85-4.97l-3.47 2.67A9.99 9.99 0 0 0 12 22Z" />
                   <path fill="#EA4335" d="M21.805 10.023H12v3.95h5.62c-.56 2.74-2.8 4.01-5.62 4.01-2.22 0-4.1-.93-5.06-2.63l-3.47 2.67C5.05 20.55 8.22 22 12 22c5.38 0 9.92-3.89 9.92-10 0-.67-.07-1.21-.12-1.98Z" />
                 </svg>
-                <span>Login dengan Google</span>
+                <span>{t("auth.loginWithGoogle")}</span>
               </button>
 
               <div className="my-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-slate-100" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">atau</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t("common.or")}</span>
                 <span className="h-px flex-1 bg-slate-100" />
               </div>
 
               <form className="space-y-4" onSubmit={onSubmit}>
                 <div>
                   <label htmlFor="email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Email
+                    {t("auth.emailLabel")}
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -238,7 +241,7 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="password" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-600">
-                    Password
+                    {t("auth.passwordLabel")}
                   </label>
                   <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -272,7 +275,7 @@ export default function LoginPage() {
                   className="w-full h-10.5 rounded-lg bg-blue-600 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Memproses..." : "Masuk"}
+                  {isSubmitting ? t("common.processing") : t("auth.loginBtn")}
                 </Button>
 
                 {error && (
@@ -290,9 +293,9 @@ export default function LoginPage() {
               </form>
 
               <p className="mt-5 text-center text-sm text-slate-500">
-                Belum punya akun?{" "}
+                {t("auth.noAccount")}{" "}
                 <Link href="/register" className="font-semibold text-blue-600 transition-colors hover:text-blue-700">
-                  Daftar sekarang
+                  {t("auth.registerNow")}
                 </Link>
               </p>
 
@@ -300,7 +303,7 @@ export default function LoginPage() {
               <div className="mt-6 rounded-xl border border-slate-100 bg-slate-50/70 p-4">
                 <div className="flex items-center justify-center gap-2 mb-3">
                   <span className="h-px w-6 bg-slate-200" />
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Quick Login (Dev Mode)</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{t("auth.devModeQuickLogin")}</span>
                   <span className="h-px w-6 bg-slate-200" />
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
