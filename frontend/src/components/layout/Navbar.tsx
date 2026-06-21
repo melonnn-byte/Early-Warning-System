@@ -223,14 +223,16 @@ export function Navbar() {
             isHomePage && isHeroMode ? "text-white" : "text-blue-700",
           )}
         >
-          <Image
-            src="/logo.png"
-            alt="EWS Flood Guard"
-            width={48}
-            height={48}
-            priority
-            className="h-12 w-12 shrink-0 rounded-full object-contain"
-          />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white p-1.5 shadow-xs border border-slate-100/80 shrink-0">
+            <Image
+              src="/logo.png"
+              alt="EWS Flood Guard"
+              width={40}
+              height={40}
+              priority
+              className="h-full w-full object-contain"
+            />
+          </div>
           EWS Flood Guard
         </Link>
         <ul className="flex flex-wrap items-center gap-2 sm:gap-3">
