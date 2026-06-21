@@ -226,10 +226,10 @@ export function Navbar() {
           <Image
             src="/logo.png"
             alt="EWS Flood Guard"
-            width={36}
-            height={36}
+            width={48}
+            height={48}
             priority
-            className="h-9 w-9 shrink-0 rounded-full object-contain"
+            className="h-12 w-12 shrink-0 rounded-full object-contain"
           />
           EWS Flood Guard
         </Link>

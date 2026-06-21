@@ -123,7 +123,7 @@ export default function LoginPage() {
 
             <div className="relative z-10 flex h-full flex-col justify-between">
               <div>
-                <Image src="/logo.png" alt="EWS Logo" width={120} height={40} className="mb-6 h-auto w-24 sm:w-28" />
+                <Image src="/logo.png" alt="EWS Logo" width={160} height={160} className="mb-6 h-auto w-32 sm:w-36 md:w-40 object-contain" />
 
                 <div className="max-w-sm">
                   <p className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-50/90 backdrop-blur-sm">
@@ -177,8 +177,8 @@ export default function LoginPage() {
 
               {/* Mobile Brand Header (only visible on mobile/portrait-tablet) */}
               <div className="flex flex-col items-center mb-6 text-center md:hidden">
-                <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-500/20">
-                  <Image src="/logo.png" alt="EWS Logo" width={32} height={32} className="h-auto w-6.5 object-contain" />
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 shadow-md shadow-blue-500/25">
+                  <Image src="/logo.png" alt="EWS Logo" width={48} height={48} className="h-auto w-10 object-contain" />
                 </div>
                 <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-600">
                   EWS Flood Guard
