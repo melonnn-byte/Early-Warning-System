@@ -916,6 +916,38 @@ export const translations = {
         red: "Merah"
       }
     },
+    userNotificationDetail: {
+      breadcrumbDashboard: "Dashboard",
+      breadcrumbNotifications: "Notifikasi",
+      breadcrumbDetail: "Detail",
+      tagLabel: "Detail Notifikasi",
+      sensorLabel: "Sensor",
+      waterLevelLabel: "Level Air",
+      timeLabel: "Waktu Notifikasi",
+      sourceLabel: "Sumber",
+      channelLabel: "Kanal Notifikasi",
+      recommendationTitle: "Rekomendasi Cepat",
+      btnGuides: "Buka Tab Panduan Sesuai Level",
+      btnBack: "Kembali ke Daftar Notifikasi",
+      loading: "Memuat detail notifikasi...",
+      notFoundTitle: "Detail notifikasi tidak ditemukan",
+      notFoundDesc: "Notifikasi mungkin sudah tidak tersedia. Kembali ke daftar notifikasi untuk melihat data terbaru.",
+      notFoundBtn: "Kembali ke Notifikasi",
+      sourceAdmin: "Admin",
+      sourceSystem: "Sistem",
+      generalArea: "Wilayah Umum",
+      levels: {
+        yellow: "Kuning",
+        orange: "Oren",
+        red: "Merah"
+      },
+      actions: {
+        yellow: "Pantau dashboard tiap 10-15 menit dan siapkan tas siaga keluarga.",
+        orange: "Mulai pra-evakuasi, pindahkan barang penting, dan prioritaskan anggota rentan.",
+        red: "Lakukan evakuasi segera ke titik aman resmi dan hubungi layanan darurat jika diperlukan."
+      },
+      errorLoad: "Gagal memuat detail notifikasi."
+    },
     userProfile: {
       back: "Kembali",
       title: "Pengaturan Profil",
@@ -1974,6 +2006,38 @@ export const translations = {
         orange: "Alert",
         red: "Danger"
       }
+    },
+    userNotificationDetail: {
+      breadcrumbDashboard: "Dashboard",
+      breadcrumbNotifications: "Notifications",
+      breadcrumbDetail: "Detail",
+      tagLabel: "Notification Detail",
+      sensorLabel: "Sensor",
+      waterLevelLabel: "Water Level",
+      timeLabel: "Notification Time",
+      sourceLabel: "Source",
+      channelLabel: "Notification Channel",
+      recommendationTitle: "Quick Recommendation",
+      btnGuides: "Open Matching Guide Tab",
+      btnBack: "Back to Notifications List",
+      loading: "Loading notification detail...",
+      notFoundTitle: "Notification detail not found",
+      notFoundDesc: "The notification may no longer be available. Revisit the notification list to see latest updates.",
+      notFoundBtn: "Back to Notifications",
+      sourceAdmin: "Admin",
+      sourceSystem: "System",
+      generalArea: "General Area",
+      levels: {
+        yellow: "Warning",
+        orange: "Alert",
+        red: "Danger"
+      },
+      actions: {
+        yellow: "Monitor the dashboard every 10-15 minutes and prepare your family emergency bag.",
+        orange: "Start pre-evacuation, move important belongings, and prioritize vulnerable members.",
+        red: "Evacuate immediately to official safe points and call emergency services if needed."
+      },
+      errorLoad: "Failed to load notification details."
     },
     userProfile: {
       back: "Back",
