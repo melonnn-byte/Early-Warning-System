@@ -1,6 +1,9 @@
-import { Card } from "@/components/ui/Card";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/Card";
+import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface EmergencyContact {
   id: string;
@@ -10,56 +13,73 @@ interface EmergencyContact {
   isActive: boolean;
 }
 
-const supportChannels = [
-  {
-    title: "Email Dukungan",
-    value: "support@ewsfloodguard.id",
-    actionLabel: "Kirim Email",
-    href: "mailto:support@ewsfloodguard.id",
-  },
-  {
-    title: "Telepon Posko",
-    value: "+62 21 555 0199",
-    actionLabel: "Hubungi Sekarang",
-    href: "tel:+62215550199",
-  },
-  {
-    title: "Alamat Operasional",
-    value: "Padang, Sumatera Barat",
-    actionLabel: "Lihat di Peta",
-    href: "https://www.google.com/maps?q=Padang,Sumatera+Barat",
-  },
-];
+export default function ContactPage() {
+  const { t, language } = useLanguage();
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-async function getEmergencyContacts(): Promise<EmergencyContact[]> {
-  try {
-    let backendUrl = process.env.BACKEND_API_URL || "http://127.0.0.1:4101";
-    backendUrl = backendUrl.replace(/\/$/, "");
-    if (!backendUrl.endsWith("/api")) {
-      backendUrl = `${backendUrl}/api`;
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const res = await api.get("/emergency-contacts");
+        if (res.data?.data) {
+          setEmergencyContacts(res.data.data.filter((c: EmergencyContact) => c.isActive));
+        }
+      } catch (err) {
+        console.error("Gagal memuat kontak darurat:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  const getCategoryLabel = (cat: string) => {
+    switch (cat) {
+      case "BPBD":
+        return "BPBD";
+      case "SAR":
+        return "SAR / Basarnas";
+      case "AMBULANCE":
+        return language === "en" ? "Ambulance" : "Ambulans";
+      case "POLICE":
+        return language === "en" ? "Police" : "Polisi";
+      case "HOSPITAL":
+        return language === "en" ? "Hospital" : "Rumah Sakit";
+      case "OTHER":
+      default:
+        return language === "en" ? "Other" : "Lainnya";
     }
-    const res = await fetch(`${backendUrl}/emergency-contacts`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    const payload = await res.json();
-    return (payload.data || []).filter((c: EmergencyContact) => c.isActive);
-  } catch {
-    return [];
-  }
-}
+  };
 
-export default async function ContactPage() {
-  const emergencyContacts = await getEmergencyContacts();
+  const supportChannels = [
+    {
+      title: t("publicContact.supportChannels.email.title"),
+      value: "support@ewsfloodguard.id",
+      actionLabel: t("publicContact.supportChannels.email.action"),
+      href: "mailto:support@ewsfloodguard.id",
+    },
+    {
+      title: t("publicContact.supportChannels.phone.title"),
+      value: "+62 21 555 0199",
+      actionLabel: t("publicContact.supportChannels.phone.action"),
+      href: "tel:+62215550199",
+    },
+    {
+      title: t("publicContact.supportChannels.address.title"),
+      value: t("publicContact.supportChannels.address.value"),
+      actionLabel: t("publicContact.supportChannels.address.action"),
+      href: "https://www.google.com/maps?q=Padang,Sumatera+Barat",
+    },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <section className="rounded-2xl bg-linear-to-br from-blue-900 via-blue-700 to-cyan-600 p-7 text-white md:p-10">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-100">Halaman Kontak</p>
-        <h1 className="mt-2 text-3xl font-bold md:text-4xl">Hubungi Tim EWS Flood Guard</h1>
+        <p className="text-sm font-semibold uppercase tracking-wide text-blue-100">{t("publicContact.pageLabel")}</p>
+        <h1 className="mt-2 text-3xl font-bold md:text-4xl">{t("publicContact.title")}</h1>
         <p className="mt-3 max-w-3xl text-sm text-blue-100 md:text-base">
-          Gunakan halaman ini untuk kebutuhan dukungan teknis, koordinasi insiden, atau pertanyaan terkait sistem
-          peringatan dini banjir.
+          {t("publicContact.subtitle")}
         </p>
       </section>
 
@@ -81,12 +101,16 @@ export default async function ContactPage() {
       </section>
 
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 md:p-6">
-        <h2 className="text-xl font-bold text-slate-900">Kontak Darurat Cepat</h2>
+        <h2 className="text-xl font-bold text-slate-900">{t("publicContact.emergencyTitle")}</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Jika terjadi kondisi kritis, gunakan tombol telepon berikut untuk menghubungi layanan darurat resmi.
+          {t("publicContact.emergencyDesc")}
         </p>
 
-        {emergencyContacts.length > 0 ? (
+        {isLoading ? (
+          <div className="mt-4 py-6 text-center text-sm text-slate-500">
+            {language === "en" ? "Loading contacts..." : "Memuat kontak..."}
+          </div>
+        ) : emergencyContacts.length > 0 ? (
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             {emergencyContacts.map((contact) => (
               <a
@@ -96,7 +120,7 @@ export default async function ContactPage() {
               >
                 <p className="font-semibold text-rose-900">{contact.name}</p>
                 <span className="mt-0.5 inline-block rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-600">
-                  {contact.category}
+                  {getCategoryLabel(contact.category)}
                 </span>
                 <p className="mt-1 text-sm font-mono font-semibold text-rose-700">{contact.phone}</p>
               </a>
@@ -104,7 +128,7 @@ export default async function ContactPage() {
           </div>
         ) : (
           <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-6 text-center text-sm text-slate-500">
-            Tidak ada data kontak darurat aktif saat ini.
+            {t("publicContact.emptyContacts")}
           </div>
         )}
       </section>

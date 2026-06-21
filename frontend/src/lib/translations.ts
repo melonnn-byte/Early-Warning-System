@@ -967,6 +967,95 @@ export const translations = {
       confirmDesc: "Seluruh perubahan formulir yang belum disimpan akan dikembalikan ke konfigurasi awal akun Anda.",
       confirmYes: "Ya, reset",
       confirmCancel: "Batal"
+    },
+    publicContact: {
+      pageLabel: "Halaman Kontak",
+      title: "Hubungi Tim EWS Flood Guard",
+      subtitle: "Gunakan halaman ini untuk kebutuhan dukungan teknis, koordinasi insiden, atau pertanyaan terkait sistem peringatan dini banjir.",
+      supportChannels: {
+        email: { title: "Email Dukungan", action: "Kirim Email" },
+        phone: { title: "Telepon Posko", action: "Hubungi Sekarang" },
+        address: { title: "Alamat Operasional", value: "Padang, Sumatera Barat", action: "Lihat di Peta" }
+      },
+      emergencyTitle: "Kontak Darurat Cepat",
+      emergencyDesc: "Jika terjadi kondisi kritis, gunakan tombol telepon berikut untuk menghubungi layanan darurat resmi.",
+      emptyContacts: "Tidak ada data kontak darurat aktif saat ini."
+    },
+    publicEducation: {
+      title: "Edukasi Banjir & FAQ",
+      subtitle: "Panduan singkat agar warga lebih siap menghadapi potensi banjir.",
+      guideTitle: "Status {level}",
+      guideDetailTitle: "Panduan Tindakan Status {level}",
+      guideDetailDesc: "Ikuti langkah berikut untuk mengurangi risiko saat notifikasi {level} muncul.",
+      yellowLevel: "Kuning",
+      orangeLevel: "Oren",
+      redLevel: "Merah",
+      guides: {
+        yellow: [
+          "Pantau dashboard setiap 10-15 menit untuk melihat tren kenaikan air.",
+          "Siapkan dokumen penting, obat, dan tas darurat keluarga.",
+          "Pastikan ponsel aktif dan notifikasi sistem tidak dimatikan."
+        ],
+        orange: [
+          "Pindahkan barang penting ke tempat yang lebih tinggi.",
+          "Siapkan anggota keluarga rentan untuk evakuasi lebih awal.",
+          "Cek rute evakuasi terdekat dan koordinasi dengan tetangga."
+        ],
+        red: [
+          "Lakukan evakuasi segera ke titik aman resmi.",
+          "Matikan listrik utama rumah bila kondisi memungkinkan.",
+          "Ikuti arahan petugas BPBD/SAR dan hindari melawan arus banjir."
+        ]
+      },
+      faqItems: [
+        {
+          q: "Apa yang harus dilakukan saat status merah?",
+          a: "Segera evakuasi ke titik aman, matikan listrik utama, dan ikuti arahan petugas lapangan."
+        },
+        {
+          q: "Bagaimana membaca status indikator?",
+          a: "Hijau = normal, Kuning = waspada, Oren = siaga, Merah = bahaya. Pantau dashboard secara berkala."
+        },
+        {
+          q: "Apakah notifikasi selalu real-time?",
+          a: "Ya, notifikasi dikirim melalui kanal yang dipilih petugas saat terjadi perubahan status penting."
+        }
+      ]
+    },
+    publicEmergency: {
+      title: "Kontak Darurat",
+      subtitle: "Hubungi layanan otoritas terdekat untuk bantuan evakuasi, medis, atau keamanan saat kondisi darurat banjir.",
+      callNow: "Hubungi Sekarang",
+      emptyContacts: "Tidak ada kontak darurat aktif yang ditemukan dalam jangkauan Anda."
+    },
+    publicMap: {
+      title: "Peta Lokasi Sensor",
+      subtitle: "Lihat titik sensor banjir secara interaktif. Klik marker untuk melihat status level air pada setiap lokasi.",
+      waterLevel: "Tinggi air",
+      waitingData: "Menunggu Data",
+      lastUpdate: "Terakhir Update",
+      lastUpdateWib: "Terakhir Update (WIB)",
+      openMaps: "Buka di Google Maps"
+    },
+    footer: {
+      tagline: "Sistem Peringatan Dini Banjir",
+      description: "Platform monitoring real-time untuk membantu admin memantau sensor, memvalidasi alert, dan mempercepat koordinasi respons banjir.",
+      products: "Produk",
+      company: "Perusahaan",
+      contact: "Kontak",
+      help: "Bantuan",
+      productLinks: {
+        realtimeDashboard: "Dashboard Real-Time",
+        dashboard: "Dashboard",
+        map: "Peta Sensor",
+        educationFAQ: "Edukasi & FAQ"
+      },
+      companyLinks: {
+        aboutUs: "Tentang Kami",
+        emergencyContact: "Kontak Darurat",
+        statusLegend: "Status & Legend",
+        contactPage: "Halaman Kontak"
+      }
     }
   },
   en: {
@@ -1937,6 +2026,95 @@ export const translations = {
       confirmDesc: "All unsaved changes in the form will be reverted to your account's initial configuration.",
       confirmYes: "Yes, reset",
       confirmCancel: "Cancel"
+    },
+    publicContact: {
+      pageLabel: "Contact Page",
+      title: "Contact the EWS Flood Guard Team",
+      subtitle: "Use this page for technical support, incident coordination, or questions related to the flood early warning system.",
+      supportChannels: {
+        email: { title: "Support Email", action: "Send Email" },
+        phone: { title: "Post Phone", action: "Call Now" },
+        address: { title: "Operational Address", value: "Padang, West Sumatra", action: "View on Map" }
+      },
+      emergencyTitle: "Quick Emergency Contacts",
+      emergencyDesc: "In critical conditions, use the following telephone buttons to call official emergency services.",
+      emptyContacts: "No active emergency contact data currently."
+    },
+    publicEducation: {
+      title: "Flood Education & FAQ",
+      subtitle: "A quick guide to help citizens prepare for potential floods.",
+      guideTitle: "Status {level}",
+      guideDetailTitle: "{level} Status Action Guide",
+      guideDetailDesc: "Follow these steps to reduce risk when the {level} notification appears.",
+      yellowLevel: "Yellow",
+      orangeLevel: "Orange",
+      redLevel: "Red",
+      guides: {
+        yellow: [
+          "Monitor the dashboard every 10-15 minutes to observe the rising water trend.",
+          "Prepare important documents, medicine, and your family's emergency bag.",
+          "Ensure your phone remains active and system notifications are not turned off."
+        ],
+        orange: [
+          "Move essential items to a higher location.",
+          "Prepare vulnerable family members for early evacuation.",
+          "Check the nearest evacuation routes and coordinate with neighbors."
+        ],
+        red: [
+          "Evacuate immediately to an official safe zone.",
+          "Turn off the main household electricity if conditions permit.",
+          "Follow directions from BPBD/SAR officers and avoid crossing flood currents."
+        ]
+      },
+      faqItems: [
+        {
+          q: "What should be done during red status?",
+          a: "Evacuate immediately to a safe point, turn off main electricity, and follow field officer directions."
+        },
+        {
+          q: "How do you read the indicator status?",
+          a: "Green = normal, Yellow = warning, Orange = alert, Red = danger. Monitor the dashboard periodically."
+        },
+        {
+          q: "Are notifications always real-time?",
+          a: "Yes, notifications are sent through the channels selected by officers when important status changes occur."
+        }
+      ]
+    },
+    publicEmergency: {
+      title: "Emergency Contacts",
+      subtitle: "Contact the nearest authority services for evacuation, medical, or security assistance during flood emergencies.",
+      callNow: "Call Now",
+      emptyContacts: "No active emergency contacts found in your area."
+    },
+    publicMap: {
+      title: "Sensor Location Map",
+      subtitle: "View flood sensor points interactively. Click markers to check the water level status at each location.",
+      waterLevel: "Water level",
+      waitingData: "Waiting for Data",
+      lastUpdate: "Last Updated",
+      lastUpdateWib: "Last Updated (WIB)",
+      openMaps: "Open in Google Maps"
+    },
+    footer: {
+      tagline: "Flood Early Warning System",
+      description: "Real-time monitoring platform to help admins monitor sensors, validate alerts, and accelerate flood response coordination.",
+      products: "Products",
+      company: "Company",
+      contact: "Contact",
+      help: "Help",
+      productLinks: {
+        realtimeDashboard: "Real-Time Dashboard",
+        dashboard: "Dashboard",
+        map: "Sensor Map",
+        educationFAQ: "Education & FAQ"
+      },
+      companyLinks: {
+        aboutUs: "About Us",
+        emergencyContact: "Emergency Contacts",
+        statusLegend: "Status & Legend",
+        contactPage: "Contact Page"
+      }
     }
   }
 };
