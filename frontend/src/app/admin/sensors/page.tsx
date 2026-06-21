@@ -10,6 +10,7 @@ import { StatusIndicator } from "@/components/ui/StatusIndicator";
 import { cn, formatRelativeTime, formatTimestamp, isSensorOnline, SENSOR_OFFLINE_THRESHOLD_MS } from "@/lib/utils";
 import { useWaterLevel } from "@/hooks/useWaterLevel";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface SensorFormState {
   id: string;
@@ -155,6 +156,7 @@ export default function AdminSensorsPage() {
   const [form, setForm] = useState<SensorFormState>(emptyForm);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const { t, language } = useLanguage();
 
   const liveDataMap = useMemo(() => {
     return new Map((liveBySensor || []).map((item) => [item.sensorId, item]));
@@ -165,9 +167,7 @@ export default function AdminSensorsPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Data is provided by `useWaterLevel` hook (shared with landing page). Use `reload()` after mutations.
-
-  const modalTitle = editingId ? "Edit Sensor" : "Tambah Sensor";
+  const modalTitle = editingId ? `${t("adminSensors.editBtn")} Sensor` : t("adminSensors.addSensorBtn");
 
   const sensorHealth = sensors.map((sensor) => {
     const online = isSensorOnline(sensor.lastSeenAt ?? sensor.updatedAt, nowMs);
@@ -186,9 +186,9 @@ export default function AdminSensorsPage() {
   const connectionToneClass = allOnline ? "text-emerald-700" : offlineCount > Math.ceil(sensorHealth.length / 2) ? "text-rose-700" : "text-amber-700";
   const riskToneClass = dangerCount > 0 ? "text-rose-700" : alertCount > 0 ? "text-amber-700" : "text-emerald-700";
   const batteryToneClass = avgBattery > 50 ? "text-emerald-700" : avgBattery > 20 ? "text-amber-700" : "text-rose-700";
-  const connectionDescription = allOnline ? "Semua sensor aktif" : `${offlineCount} sensor offline`;
-  const riskDescription = dangerCount > 0 ? `${dangerCount} sensor bahaya` : alertCount > 0 ? `${alertCount} sensor waspada` : "Semua sensor aman";
-  const batteryDescription = avgBattery > 50 ? "Daya masih aman" : avgBattery > 20 ? "Perlu perhatian" : "Wajib cek baterai";
+  const connectionDescription = allOnline ? t("adminSensors.allSensorsActive") : t("adminSensors.sensorsOfflineDesc", { count: offlineCount });
+  const riskDescription = dangerCount > 0 ? t("adminSensors.sensorsDangerDesc", { count: dangerCount }) : alertCount > 0 ? t("adminSensors.sensorsAlertDesc", { count: alertCount }) : t("adminSensors.allSensorsSafe");
+  const batteryDescription = avgBattery > 50 ? t("adminSensors.batterySafeDesc") : avgBattery > 20 ? t("adminSensors.batteryAttentionDesc") : t("adminSensors.batteryCriticalDesc");
   const hasError = Boolean(error);
 
   const mapPreviewUrl = useMemo(
@@ -196,7 +196,6 @@ export default function AdminSensorsPage() {
     [form.latitude, form.longitude],
   );
 
-  // Auto-dismiss success and error alerts after 5 seconds for a premium feel
   useEffect(() => {
     if (savedMessage) {
       const timer = setTimeout(() => setSavedMessage(null), 5000);
@@ -241,14 +240,14 @@ export default function AdminSensorsPage() {
     setErrorMessage(null);
     try {
       await api.post("/sensors", payload);
-      setSavedMessage("Sensor baru berhasil ditambahkan.");
+      setSavedMessage(t("adminSensors.addSuccessMsg"));
       setOpen(false);
       reload();
     } catch (err: unknown) {
       const rawMsg = getErrorMessage(err);
       let friendlyMsg = "Gagal menambahkan sensor baru.";
       if (rawMsg.includes("Unique constraint failed") || rawMsg.includes("sensor_id")) {
-        friendlyMsg = "ID Perangkat (MAC Address/UUID) sudah terdaftar. Silakan gunakan ID unik yang lain.";
+        friendlyMsg = t("adminSensors.uniqueConstraintError");
       } else if (rawMsg) {
         friendlyMsg = rawMsg;
       }
@@ -273,14 +272,14 @@ export default function AdminSensorsPage() {
         throw new Error(errData.error || "Gagal memperbarui sensor.");
       }
 
-      setSavedMessage("Data sensor berhasil diperbarui.");
+      setSavedMessage(t("adminSensors.saveSuccessMsg"));
       setOpen(false);
       reload();
     } catch (err: unknown) {
       const rawMsg = getErrorMessage(err);
       let friendlyMsg = "Gagal memperbarui sensor.";
       if (rawMsg.includes("Unique constraint failed") || rawMsg.includes("sensor_id")) {
-        friendlyMsg = "ID Perangkat (MAC Address/UUID) sudah terdaftar. Silakan gunakan ID unik yang lain.";
+        friendlyMsg = t("adminSensors.uniqueConstraintError");
       } else if (rawMsg) {
         friendlyMsg = rawMsg;
       }
@@ -293,10 +292,10 @@ export default function AdminSensorsPage() {
     setErrorMessage(null);
     try {
       await api.delete(`/sensors/${id}`);
-      setSavedMessage("Sensor berhasil dihapus.");
+      setSavedMessage(t("adminSensors.deleteSuccessMsg"));
       reload();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus sensor.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminSensors.failedDeleteMsg"));
     }
   };
 
@@ -383,14 +382,14 @@ export default function AdminSensorsPage() {
     <Card className="border-rose-200 bg-rose-50/80 shadow-sm backdrop-blur-xl">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-700">Gagal Memuat Data</p>
-          <h3 className="text-lg font-semibold text-rose-900">Koneksi data sensor sedang bermasalah</h3>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-rose-700">{t("adminSensors.connectionErrorTitle")}</p>
+          <h3 className="text-lg font-semibold text-rose-900">{t("adminSensors.connectionErrorSubtitle")}</h3>
           <p className="max-w-2xl text-sm text-rose-700">
-            {error || errorMessage || "Terjadi gangguan saat memuat sensor. Silakan coba lagi beberapa saat."}
+            {error || errorMessage || t("adminSensors.connectionErrorDesc")}
           </p>
         </div>
         <Button onClick={() => reload()} className="bg-white text-rose-700 hover:bg-rose-50">
-          Coba Lagi
+          {t("adminSensors.retryBtn")}
         </Button>
       </div>
     </Card>
@@ -403,18 +402,18 @@ export default function AdminSensorsPage() {
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-700">Command Center</p>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Manajemen Sensor IoT</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("adminSensors.title")}</h1>
               <p className="max-w-2xl text-sm text-slate-600">
-                Pantau status koneksi, ingest terakhir, kesehatan baterai, dan ketinggian air dari ESP8266 secara real-time.
+                {t("adminSensors.subtitle")}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
-              Polling aman tiap {Math.round(POLL_REFRESH_MS / 1000)} detik
+              {t("adminSensors.pollingSafeLabel", { seconds: Math.round(POLL_REFRESH_MS / 1000) })}
             </span>
             <Button onClick={openCreate} className="bg-blue-600 text-white shadow-sm hover:bg-blue-700">
-              Tambah Sensor
+              {t("adminSensors.addSensorBtn")}
             </Button>
           </div>
         </div>
@@ -430,9 +429,9 @@ export default function AdminSensorsPage() {
             <Card className="rounded-xl border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Total Sensor</p>
+                  <p className="text-sm text-slate-500">{t("adminSensors.totalSensorsLabel")}</p>
                   <p className="mt-1 text-3xl font-bold text-slate-900">{sensorHealth.length}</p>
-                  <p className="text-xs text-slate-500">Perangkat terdaftar</p>
+                  <p className="text-xs text-slate-500">{t("adminSensors.registeredDevices")}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2 text-slate-700 shadow-sm">
                   <StatIcon kind="total" />
@@ -443,7 +442,7 @@ export default function AdminSensorsPage() {
             <Card className="rounded-xl border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Koneksi</p>
+                  <p className="text-sm text-slate-500">{t("adminSensors.connectivityLabel")}</p>
                   <p className={cn("mt-1 text-3xl font-bold", connectionToneClass)}>{onlineCount}</p>
                   <p className="text-xs text-slate-500">{connectionDescription}</p>
                 </div>
@@ -456,7 +455,7 @@ export default function AdminSensorsPage() {
             <Card className="rounded-xl border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Status Risiko</p>
+                  <p className="text-sm text-slate-500">{t("adminSensors.riskStatusLabel")}</p>
                   <p className={cn("mt-1 text-3xl font-bold", riskToneClass)}>{alertCount}</p>
                   <p className="text-xs text-slate-500">{riskDescription}</p>
                 </div>
@@ -469,12 +468,12 @@ export default function AdminSensorsPage() {
             <Card className="rounded-xl border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur-xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm text-slate-500">Rata-rata Baterai</p>
+                  <p className="text-sm text-slate-500">{t("adminSensors.averageBatteryLabel")}</p>
                   <p className={cn("mt-1 text-3xl font-bold", batteryToneClass)}>
                     {validBatterySensors.length > 0 ? `${avgBattery}%` : "N/A"}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {validBatterySensors.length > 0 ? batteryDescription : "Perangkat tidak mengirim data baterai"}
+                    {validBatterySensors.length > 0 ? batteryDescription : t("adminSensors.noBatteryData")}
                   </p>
                 </div>
                 <div className={cn("rounded-lg bg-slate-50 p-2 shadow-sm", batteryToneClass)}>
@@ -499,24 +498,26 @@ export default function AdminSensorsPage() {
           <section className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Daftar Sensor</h2>
+                <h2 className="text-lg font-semibold text-slate-900">{language === "en" ? "Sensor List" : "Daftar Sensor"}</h2>
                 <p className="text-sm text-slate-500">
-                  Status koneksi ditentukan dari {Math.round(SENSOR_OFFLINE_THRESHOLD_MS / 60000)} menit terakhir, jadi admin langsung tahu sensor mana yang benar-benar hidup.
+                  {language === "en" 
+                    ? "Connection status is determined from the last 3 minutes, so admins know exactly which sensors are active." 
+                    : "Status koneksi ditentukan dari 3 menit terakhir, jadi admin langsung tahu sensor mana yang benar-benar hidup."}
                 </p>
               </div>
               <div className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur-xl">
-                {sensorHealth.length} sensor aktif
+                {t("adminSensors.devicesActiveLabel", { count: sensorHealth.length })}
               </div>
             </div>
 
             <Card className="overflow-hidden border-slate-200/70 bg-white/80 p-0 shadow-sm backdrop-blur-xl">
               <div className="hidden grid-cols-[2.3fr_1.25fr_1.1fr_1.1fr_1.25fr_1fr] gap-4 border-b border-slate-200 px-5 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 lg:grid">
-                <div>Sensor</div>
-                <div>Pembacaan Terakhir</div>
-                <div>Status Koneksi</div>
-                <div>Sisa Baterai</div>
-                <div>Terakhir Update</div>
-                <div className="text-right">Aksi</div>
+                <div>{t("adminSensors.tableHeaderSensor")}</div>
+                <div>{t("adminSensors.tableHeaderLastReading")}</div>
+                <div>{t("adminSensors.tableHeaderConnection")}</div>
+                <div>{t("adminSensors.tableHeaderBattery")}</div>
+                <div>{t("adminSensors.tableHeaderLastUpdate")}</div>
+                <div className="text-right">{t("adminSensors.tableHeaderAction")}</div>
               </div>
 
               <div className="divide-y divide-slate-200">
@@ -525,8 +526,8 @@ export default function AdminSensorsPage() {
                   const tone = connectionTone(online);
                   const battery = batteryTone(sensor.batteryPercent);
                   const lastSeen = sensor.lastSeenAt ?? sensor.updatedAt;
-                  const exactTimestamp = lastSeen ? formatTimestamp(lastSeen) : "Belum ada ingest";
-                  const relativeTime = formatRelativeTime(lastSeen, nowMs);
+                  const exactTimestamp = lastSeen ? formatTimestamp(lastSeen, language) : t("adminSensors.noIngestData");
+                  const relativeTime = formatRelativeTime(lastSeen, nowMs, language);
 
                   return (
                     <div key={sensor.id} className="grid gap-4 px-5 py-4 lg:grid-cols-[2.3fr_1.25fr_1.1fr_1.1fr_1.25fr_1fr] lg:items-center">
@@ -545,14 +546,14 @@ export default function AdminSensorsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">Pembacaan Terakhir</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">{t("adminSensors.tableHeaderLastReading")}</p>
                         {(() => {
                           const live = liveDataMap.get(sensor.id);
                           const hasData = sensor.lastSeenAt !== null;
                           if (!hasData) {
                             return (
                               <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm animate-pulse">
-                                Menunggu Data
+                                {t("adminSensors.noIngestData")}
                               </span>
                             );
                           }
@@ -560,10 +561,10 @@ export default function AdminSensorsPage() {
                           let formattedValue = "";
                           if (sensor.type === "RAINFALL") {
                             const val = live?.rainfallMm ?? 0;
-                            formattedValue = `${val.toFixed(1)} mm/jam`;
+                            formattedValue = language === "en" ? `${val.toFixed(1)} mm/hr` : `${val.toFixed(1)} mm/jam`;
                           } else if (sensor.type === "FLOW_RATE") {
                             const val = live?.flowRateLpm ?? 0;
-                            formattedValue = `${val.toFixed(1)} L/min`;
+                            formattedValue = language === "en" ? `${val.toFixed(1)} L/min` : `${val.toFixed(1)} L/menit`;
                           } else {
                             const val = live?.levelCm ?? sensor.lastLevelCm;
                             formattedValue = `${val.toFixed(1)} cm`;
@@ -578,15 +579,15 @@ export default function AdminSensorsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">Status Koneksi</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">{t("adminSensors.tableHeaderConnection")}</p>
                         <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm", tone.badge)}>
                           {connectionIcon(online)}
-                          {online ? "Online" : "Offline"}
+                          {online ? t("adminSensors.connectionOnline") : t("adminSensors.connectionOffline")}
                         </span>
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">Sisa Baterai</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">{t("adminSensors.tableHeaderBattery")}</p>
                         {sensor.batteryPercent === 0 ? (
                           <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-400 shadow-sm">
                             N/A
@@ -595,7 +596,13 @@ export default function AdminSensorsPage() {
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-xs text-slate-500">
                               <span>{sensor.batteryPercent}%</span>
-                              <span className={battery.text}>{sensor.batteryPercent > 50 ? "Aman" : sensor.batteryPercent > 20 ? "Waspada" : "Kritis"}</span>
+                              <span className={battery.text}>
+                                {sensor.batteryPercent > 50 
+                                  ? t("adminSensors.batterySafe") 
+                                  : sensor.batteryPercent > 20 
+                                    ? t("adminSensors.batteryWarning") 
+                                    : t("adminSensors.batteryCritical")}
+                              </span>
                             </div>
                             <div className="h-2.5 w-full rounded-full bg-slate-100">
                               <div
@@ -608,7 +615,7 @@ export default function AdminSensorsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">Terakhir Update</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 lg:hidden">{t("adminSensors.tableHeaderLastUpdate")}</p>
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{relativeTime}</p>
                           <p className="text-xs text-slate-500" title={exactTimestamp}>
@@ -622,7 +629,7 @@ export default function AdminSensorsPage() {
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M14 4l6 6-10 10H4v-6L14 4z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
-                          Edit
+                          {t("adminSensors.editBtn")}
                         </button>
                         <button type="button" onClick={() => setDeleteConfirm({ id: sensor.id, name: sensor.name })} className={iconButtonClass(true)}>
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -630,7 +637,7 @@ export default function AdminSensorsPage() {
                             <path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                             <path d="M7 7l1 13h8l1-13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           </svg>
-                          Hapus
+                          {t("adminSensors.deleteBtn")}
                         </button>
                       </div>
                     </div>
@@ -650,13 +657,13 @@ export default function AdminSensorsPage() {
                 <svg className="h-4.5 w-4.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                Gagal Menyimpan
+                {t("adminSensors.saveFailedTitle")}
               </p>
               <p className="mt-1 text-xs text-rose-600">{errorMessage}</p>
             </div>
           )}
           <label className="block text-sm font-medium text-slate-700">
-            ID Perangkat (MAC Address/UUID)
+            {t("adminSensors.deviceIdLabel")}
             <input
               required
               value={form.id}
@@ -668,32 +675,32 @@ export default function AdminSensorsPage() {
           </label>
 
           <label className="block text-sm font-medium text-slate-700">
-            Nama Lokasi
+            {t("adminSensors.locationNameLabel")}
             <input
               required
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
               className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm transition-all focus:border-blue-500 focus:outline-none"
-              placeholder="Hulu Sungai Jembatan X"
+              placeholder={language === "en" ? "Upstream River X Bridge" : "Hulu Sungai Jembatan X"}
             />
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
-              Tipe Sensor
+              {t("adminSensors.sensorTypeLabel")}
               <select
                 value={form.type}
                 onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value as SensorType }))}
                 className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white text-slate-900 focus:border-blue-500 focus:outline-none"
               >
-                <option value="WATER_LEVEL">Water Level (Tinggi Air)</option>
-                <option value="RAINFALL">Rainfall (Curah Hujan)</option>
-                <option value="FLOW_RATE">Flow Rate (Debit Aliran)</option>
+                <option value="WATER_LEVEL">{language === "en" ? "Water Level" : "Water Level (Tinggi Air)"}</option>
+                <option value="RAINFALL">{language === "en" ? "Rainfall" : "Rainfall (Curah Hujan)"}</option>
+                <option value="FLOW_RATE">{language === "en" ? "Flow Rate" : "Flow Rate (Debit Aliran)"}</option>
               </select>
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
-              Nama Sungai/Area
+              {language === "en" ? "River/Area Name" : "Nama Sungai/Area"}
               <input
                 required
                 value={form.riverName}
@@ -731,7 +738,7 @@ export default function AdminSensorsPage() {
 
           {form.type === "WATER_LEVEL" && (
             <label className="block text-sm font-medium text-slate-700">
-              Kalibrasi Nol (Tinggi Tangki/cm)
+              {t("adminSensors.zeroCalibrationLabel")}
               <input
                 type="number"
                 required
@@ -744,21 +751,21 @@ export default function AdminSensorsPage() {
           )}
 
           <label className="block text-sm font-medium text-slate-700">
-            Status Koneksi
+            {t("adminSensors.connectivityLabel")}
             <select
               value={form.connectivity.toUpperCase()}
               onChange={(event) => setForm((prev) => ({ ...prev, connectivity: event.target.value as SensorConnectivity }))}
               className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm bg-white text-slate-900 focus:border-blue-500 focus:outline-none"
             >
-              <option value="ONLINE">Online</option>
-              <option value="OFFLINE">Offline</option>
+              <option value="ONLINE">{t("adminSensors.connectionOnline")}</option>
+              <option value="OFFLINE">{t("adminSensors.connectionOffline")}</option>
             </select>
           </label>
 
           <div>
-            <p className="mb-1 text-sm font-medium text-slate-700">Pratinjau Lokasi (Mini Map)</p>
+            <p className="mb-1 text-sm font-medium text-slate-700">{t("adminSensors.coordinatePreview")}</p>
             <iframe
-              title="Mini map koordinat sensor"
+              title={t("adminSensors.miniMapTitle")}
               src={mapPreviewUrl}
               loading="lazy"
               className="h-38 w-full rounded-xl border border-slate-200"
@@ -767,10 +774,10 @@ export default function AdminSensorsPage() {
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={isSubmitting}>
-              Batal
+              {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Menyimpan..." : "Simpan Sensor"}
+              {isSubmitting ? t("adminSensors.savingLoader") : t("adminSensors.saveSensorBtn")}
             </Button>
           </div>
         </form>
@@ -778,10 +785,10 @@ export default function AdminSensorsPage() {
 
       <ConfirmDialog
         open={Boolean(deleteConfirm)}
-        title="Hapus sensor ini?"
-        description={`Apakah Anda yakin ingin menghapus sensor ${deleteConfirm?.name ?? "terpilih"}? Data histori dari sensor ini mungkin akan ikut terhapus.`}
-        confirmText="Ya, hapus"
-        cancelText="Batal"
+        title={t("adminSensors.deleteConfirmTitle")}
+        description={t("adminSensors.deleteConfirmDesc", { name: deleteConfirm?.name ?? "" })}
+        confirmText={t("adminSensors.deleteConfirmYes")}
+        cancelText={t("common.cancel")}
         onCancel={() => setDeleteConfirm(null)}
         onConfirm={() => {
           const selected = deleteConfirm;

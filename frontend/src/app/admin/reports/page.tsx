@@ -10,6 +10,7 @@ import { formatTimestamp } from "@/lib/utils";
 import type { WaterLevelPoint } from "@/types/water-level";
 import api from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface FilterState {
   fromDate: string;
@@ -22,6 +23,7 @@ type DownloadFormat = "pdf" | "excel";
 const REPORT_TYPE = "combined";
 
 export default function AdminReportsPage() {
+  const { t, language } = useLanguage();
   const today = new Date();
   const weekAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
   const initialFromDate = weekAgo.toISOString().slice(0, 10);
@@ -61,12 +63,12 @@ export default function AdminReportsPage() {
 
       const deletedCounts = response.data?.data?.deletedCounts;
       const totalDeleted = deletedCounts?.total ?? 0;
-      showToast(`Berhasil menghapus ${totalDeleted} baris data logs.`);
+      showToast(t("adminReports.deleteSuccess").replace("{count}", totalDeleted.toString()));
 
       // Reload history to refresh view
       await loadHistory(appliedFilter, sensorOptions);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Gagal menghapus data.";
+      const message = error instanceof Error ? error.message : t("adminReports.deleteFailed");
       setErrorMessage(message);
       showToast(message);
     } finally {
@@ -122,9 +124,9 @@ export default function AdminReportsPage() {
       const blob = response.data as Blob;
       const filename = buildDownloadFilename(format);
       triggerDownload(blob, filename);
-      showToast(format === "pdf" ? "Unduhan PDF sedang dimulai." : "Unduhan Excel sedang dimulai.");
+      showToast(format === "pdf" ? t("adminReports.pdfStarted") : t("adminReports.excelStarted"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Gagal mengunduh laporan.";
+      const message = error instanceof Error ? error.message : t("adminReports.downloadFailed");
       setErrorMessage(message);
       showToast(message);
     } finally {
@@ -212,14 +214,14 @@ export default function AdminReportsPage() {
           sensors,
         );
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Gagal memuat laporan.");
+        setErrorMessage(error instanceof Error ? error.message : t("adminReports.loadFailed"));
       } finally {
         setLoading(false);
       }
     };
 
     void bootstrap();
-  }, [initialFromDate, initialToDate]);
+  }, [initialFromDate, initialToDate, t]);
 
   useEffect(() => {
     // Setup bulletproof 60-second silent background polling for reports
@@ -262,60 +264,64 @@ export default function AdminReportsPage() {
       <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
         <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
         <div className="relative z-10 space-y-1.5">
-          <h1 className="text-2xl font-bold tracking-tight">Laporan (Data Logs & Reporting)</h1>
-          <p className="max-w-2xl text-sm text-blue-50/95">Analisis historis untuk pelaporan bulanan ke pemerintah daerah dan instansi terkait.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("adminReports.title")}</h1>
+          <p className="max-w-2xl text-sm text-blue-50/95">{t("adminReports.subtitle")}</p>
         </div>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-slate-200 bg-white/95 shadow-sm">
-          <p className="text-sm text-slate-500">Total Data Terfilter</p>
+          <p className="text-sm text-slate-500">{t("adminReports.statsTotal")}</p>
           <p className="mt-1 text-3xl font-bold text-slate-900">{filteredData.length}</p>
-          <p className="text-xs text-slate-500">Baris data siap diekspor</p>
+          <p className="text-xs text-slate-500">{t("adminReports.statsTotalDesc")}</p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
-          <p className="text-sm text-slate-500">Rentang Tanggal</p>
+          <p className="text-sm text-slate-500">{t("adminReports.statsDateRange")}</p>
           <p className="mt-1 text-xl font-bold text-blue-600">{appliedFilter.fromDate || "-"}</p>
-          <p className="text-xs text-slate-500">s.d. {appliedFilter.toDate || "-"}</p>
+          <p className="text-xs text-slate-500">
+            {t("adminReports.statsDateRangeDesc").replace("{date}", appliedFilter.toDate || "-")}
+          </p>
         </Card>
         <Card className="border-slate-200 bg-white/95 shadow-sm">
-          <p className="text-sm text-slate-500">Filter Sensor</p>
-          <p className="mt-1 text-xl font-bold text-cyan-700">{appliedFilter.sensorId === "all" ? "Semua Sensor" : appliedFilter.sensorId}</p>
-          <p className="text-xs text-slate-500">Sensor yang ditampilkan</p>
+          <p className="text-sm text-slate-500">{t("adminReports.statsFilterSensor")}</p>
+          <p className="mt-1 text-xl font-bold text-cyan-700">
+            {appliedFilter.sensorId === "all" ? t("adminReports.allSensors") : appliedFilter.sensorId}
+          </p>
+          <p className="text-xs text-slate-500">{t("adminReports.statsFilterSensorDesc")}</p>
         </Card>
       </div>
 
       <Card className="border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Filter Pencarian</h2>
+        <h2 className="mb-3 text-base font-semibold text-slate-900">{t("adminReports.filterTitle")}</h2>
         <div className="grid gap-3 md:grid-cols-4">
           <label className="text-sm text-slate-700">
-            Tanggal Mulai
+            {t("adminReports.filterStartDate")}
             <input
               type="date"
               value={filterForm.fromDate}
               onChange={(event) => setFilterForm((prev) => ({ ...prev, fromDate: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-800"
             />
           </label>
 
           <label className="text-sm text-slate-700">
-            Tanggal Akhir
+            {t("adminReports.filterEndDate")}
             <input
               type="date"
               value={filterForm.toDate}
               onChange={(event) => setFilterForm((prev) => ({ ...prev, toDate: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-800"
             />
           </label>
 
           <label className="text-sm text-slate-700">
-            Pilih Sensor
+            {t("adminReports.filterChooseSensor")}
             <select
               value={filterForm.sensorId}
               onChange={(event) => setFilterForm((prev) => ({ ...prev, sensorId: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-800"
             >
-              <option value="all">Semua Sensor</option>
+              <option value="all">{t("adminReports.allSensors")}</option>
               {Array.isArray(sensorOptions) && sensorOptions.map((sensor) => (
                 <option key={sensor.id} value={sensor.sensorId}>
                   {sensor.name}
@@ -333,11 +339,11 @@ export default function AdminReportsPage() {
                 try {
                   await loadHistory(filterForm, Array.isArray(sensorOptions) ? sensorOptions : []);
                 } catch (error) {
-                  setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data filter.");
+                  setErrorMessage(error instanceof Error ? error.message : t("adminReports.loadFilterFailed"));
                 }
               }}
             >
-              Tampilkan Data
+              {t("adminReports.filterBtn")}
             </Button>
           </div>
         </div>
@@ -356,9 +362,9 @@ export default function AdminReportsPage() {
       </div>
 
       <Card className="overflow-x-auto border-slate-200 bg-white/95 shadow-md shadow-slate-200/40">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Tabel Data Mentah</h2>
-          <div className="flex gap-2">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-base font-semibold text-slate-900">{t("adminReports.tableTitle")}</h2>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
               onClick={() => void downloadReport("pdf")}
@@ -367,20 +373,20 @@ export default function AdminReportsPage() {
               {downloadLoading === "pdf" ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="inline-flex size-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-                  Memproses PDF...
+                  {t("adminReports.processingPdf")}
                 </span>
               ) : (
-                "Unduh PDF"
+                t("adminReports.downloadPdf")
               )}
             </Button>
             <Button onClick={() => void downloadReport("excel")} disabled={isDownloading || deleteLoading}>
               {downloadLoading === "excel" ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="inline-flex size-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
-                  Memproses Excel...
+                  {t("adminReports.processingExcel")}
                 </span>
               ) : (
-                "Unduh Excel (.xlsx)"
+                t("adminReports.downloadExcel")
               )}
             </Button>
             <Button
@@ -391,10 +397,10 @@ export default function AdminReportsPage() {
               {deleteLoading ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="inline-flex size-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
-                  Menghapus...
+                  {t("adminReports.deleting")}
                 </span>
               ) : (
-                "Hapus Data Terfilter"
+                t("adminReports.deleteFiltered")
               )}
             </Button>
           </div>
@@ -403,24 +409,24 @@ export default function AdminReportsPage() {
         <table className="w-full min-w-180 text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-slate-500">
-              <th className="py-2">Waktu</th>
-              <th className="py-2">Sensor</th>
-              <th className="py-2">Ketinggian</th>
-              <th className="py-2">Intensitas Hujan</th>
-              <th className="py-2">Debit Air</th>
+              <th className="py-2">{t("adminReports.colTime")}</th>
+              <th className="py-2">{t("adminReports.colSensor")}</th>
+              <th className="py-2">{t("adminReports.colLevel")}</th>
+              <th className="py-2">{t("adminReports.colRainfall")}</th>
+              <th className="py-2">{t("adminReports.colFlowRate")}</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-6 text-center text-sm text-slate-500">
-                  Tidak ada data pada rentang filter ini.
+                  {t("adminReports.emptyData")}
                 </td>
               </tr>
             ) : (
               filteredData.map((row, index) => (
                 <tr key={`${row.sensorId}-${row.timestamp}-${index}`} className="border-b border-slate-100">
-                  <td className="py-3 text-slate-700">{formatTimestamp(row.timestamp)}</td>
+                  <td className="py-3 text-slate-700">{formatTimestamp(row.timestamp, language)}</td>
                   <td className="py-3 text-slate-700">{row.sensorId}</td>
                   <td className="py-3 text-slate-700">{row.levelCm} cm</td>
                   <td className="py-3 text-slate-700">{row.rainfallMm} mm/jam</td>
@@ -432,26 +438,25 @@ export default function AdminReportsPage() {
         </table>
       </Card>
 
-      {loading && <p className="text-sm text-slate-500">Memuat data laporan...</p>}
+      {loading && <p className="text-sm text-slate-500">{t("adminReports.loadingReports")}</p>}
       {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
 
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xl shadow-slate-900/10">
-          <p className="text-sm font-semibold text-blue-700">Laporan</p>
+          <p className="text-sm font-semibold text-blue-700">{t("adminReports.title")}</p>
           <p className="mt-1 text-sm text-slate-600">{toastMessage}</p>
         </div>
       )}
 
       <ConfirmDialog
         open={isConfirmOpen}
-        title="Hapus Data Terfilter"
-        description={`Apakah Anda yakin ingin menghapus seluruh data logs untuk sensor "${
-          appliedFilter.sensorId === "all" ? "Semua Sensor" : appliedFilter.sensorId
-        }" dari tanggal ${appliedFilter.fromDate} s.d. ${
-          appliedFilter.toDate
-        } dari database secara permanen? Tindakan ini bersifat destruktif dan tidak dapat dibatalkan.`}
-        confirmText="Ya, Hapus Data"
-        cancelText="Batal"
+        title={t("adminReports.deleteConfirmTitle")}
+        description={t("adminReports.deleteConfirmDesc")
+          .replace("{sensorId}", appliedFilter.sensorId === "all" ? t("adminReports.allSensors") : appliedFilter.sensorId)
+          .replace("{from}", appliedFilter.fromDate)
+          .replace("{to}", appliedFilter.toDate)}
+        confirmText={t("adminReports.deleteConfirmYes")}
+        cancelText={t("adminReports.deleteConfirmCancel")}
         onConfirm={handleDeleteFiltered}
         onCancel={() => setIsConfirmOpen(false)}
       />

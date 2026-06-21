@@ -7,37 +7,13 @@ import { Card } from "@/components/ui/Card";
 import api from "@/lib/api";
 import { formatTimestamp } from "@/lib/utils";
 import type { UserNotificationItem } from "@/types/user-notification";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const levelBadgeClass = {
   yellow: "bg-amber-100 text-amber-700",
   orange: "bg-orange-100 text-orange-700",
   red: "bg-rose-100 text-rose-700",
 } as const;
-
-const levelLabel = {
-  yellow: "Kuning",
-  orange: "Oren",
-  red: "Merah",
-} as const;
-
-const levelQuickAction = {
-  yellow: "Pantau dashboard tiap 10-15 menit dan siapkan tas siaga keluarga.",
-  orange: "Mulai pra-evakuasi, pindahkan barang penting, dan prioritaskan anggota rentan.",
-  red: "Lakukan evakuasi segera ke titik aman resmi dan hubungi layanan darurat jika diperlukan.",
-} as const;
-
-function parseReadMap(raw: string | null): Record<string, boolean> {
-  if (!raw) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as Record<string, boolean>;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
 
 function mapSeverityToRiskLevel(severity: string): UserNotificationItem["riskLevel"] {
   if (severity === "DANGER") {
@@ -75,6 +51,7 @@ function isNotificationRead(sentAt: string, notificationReadAt: string | null, i
 }
 
 export default function UserNotificationDetailPage() {
+  const { t, language } = useLanguage();
   const params = useParams<{ notificationId: string | string[] }>();
   const notificationId = useMemo(() => {
     if (!params?.notificationId) {
@@ -87,6 +64,18 @@ export default function UserNotificationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<UserNotificationItem | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const levelLabel = useMemo(() => ({
+    yellow: t("userNotificationDetail.levels.yellow"),
+    orange: t("userNotificationDetail.levels.orange"),
+    red: t("userNotificationDetail.levels.red"),
+  }), [t]);
+
+  const levelQuickAction = useMemo(() => ({
+    yellow: t("userNotificationDetail.actions.yellow"),
+    orange: t("userNotificationDetail.actions.orange"),
+    red: t("userNotificationDetail.actions.red"),
+  }), [t]);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +123,7 @@ export default function UserNotificationDetailPage() {
         const mapped: UserNotificationItem = {
           id: row.id,
           sensorId: row.targetArea || "WILAYAH",
-          sensorName: row.targetArea || "Wilayah Umum",
+          sensorName: row.targetArea || t("userNotificationDetail.generalArea"),
           levelCm: 0,
           riskLevel: mapSeverityToRiskLevel(row.severity),
           title: row.title,
@@ -142,7 +131,7 @@ export default function UserNotificationDetailPage() {
           createdAt: row.sentAt,
           isRead: true,
           guideHref: mapSeverityToGuideHref(row.severity),
-          senderName: row.user?.name?.trim() || (sourceType === "ADMIN" ? "Admin EWS" : "Sistem EWS"),
+          senderName: row.user?.name?.trim() || (sourceType === "ADMIN" ? `${t("userNotificationDetail.sourceAdmin")} EWS` : `${t("userNotificationDetail.sourceSystem")} EWS`),
           sourceType,
           channels: row.channels ?? [],
         };
@@ -154,7 +143,7 @@ export default function UserNotificationDetailPage() {
       } catch {
         if (!cancelled) {
           setNotification(null);
-          setErrorMessage("Gagal memuat detail notifikasi.");
+          setErrorMessage(t("userNotificationDetail.errorLoad"));
           setLoading(false);
         }
       }
@@ -165,13 +154,13 @@ export default function UserNotificationDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [notificationId]);
+  }, [notificationId, t]);
 
   if (loading) {
     return (
       <main className="mx-auto w-full max-w-4xl px-6 py-8">
         <Card>
-          <p className="text-sm text-slate-600">Memuat detail notifikasi...</p>
+          <p className="text-sm text-slate-600">{t("userNotificationDetail.loading")}</p>
         </Card>
       </main>
     );
@@ -181,16 +170,16 @@ export default function UserNotificationDetailPage() {
     return (
       <main className="mx-auto w-full max-w-4xl px-6 py-8">
         <Card>
-          <h1 className="text-lg font-bold text-slate-900">Detail notifikasi tidak ditemukan</h1>
+          <h1 className="text-lg font-bold text-slate-900">{t("userNotificationDetail.notFoundTitle")}</h1>
           <p className="mt-2 text-sm text-slate-600">
-            {errorMessage ?? "Notifikasi mungkin sudah tidak tersedia. Kembali ke daftar notifikasi untuk melihat data terbaru."}
+            {errorMessage ?? t("userNotificationDetail.notFoundDesc")}
           </p>
           <div className="mt-4">
             <Link
               href="/user/notifications"
               className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Kembali ke Notifikasi
+              {t("userNotificationDetail.notFoundBtn")}
             </Link>
           </div>
         </Card>
@@ -201,17 +190,17 @@ export default function UserNotificationDetailPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-8">
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        <Link href="/user/dashboard" className="hover:text-blue-700">Dashboard</Link>
+        <Link href="/user/dashboard" className="hover:text-blue-700">{t("userNotificationDetail.breadcrumbDashboard")}</Link>
         <span>›</span>
-        <Link href="/user/notifications" className="hover:text-blue-700">Notifikasi</Link>
+        <Link href="/user/notifications" className="hover:text-blue-700">{t("userNotificationDetail.breadcrumbNotifications")}</Link>
         <span>›</span>
-        <span className="text-slate-700">Detail</span>
+        <span className="text-slate-700">{t("userNotificationDetail.breadcrumbDetail")}</span>
       </div>
 
       <Card className={notification.isRead ? "border-slate-200" : "border-blue-200 bg-blue-50/30"}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Detail Notifikasi</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{t("userNotificationDetail.tagLabel")}</p>
             <h1 className="mt-1 text-2xl font-bold text-slate-900">{notification.title}</h1>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">{notification.message}</p>
           </div>
@@ -223,28 +212,28 @@ export default function UserNotificationDetailPage() {
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <p className="text-xs text-slate-500">Sensor</p>
+            <p className="text-xs text-slate-500">{t("userNotificationDetail.sensorLabel")}</p>
             <p className="text-sm font-semibold text-slate-800">{notification.sensorName} ({notification.sensorId})</p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <p className="text-xs text-slate-500">Level Air</p>
+            <p className="text-xs text-slate-500">{t("userNotificationDetail.waterLevelLabel")}</p>
             <p className="text-sm font-semibold text-slate-800">{notification.levelCm} cm</p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <p className="text-xs text-slate-500">Waktu Notifikasi</p>
-            <p className="text-sm font-semibold text-slate-800">{formatTimestamp(notification.createdAt)}</p>
+            <p className="text-xs text-slate-500">{t("userNotificationDetail.timeLabel")}</p>
+            <p className="text-sm font-semibold text-slate-800">{formatTimestamp(notification.createdAt, language)}</p>
           </div>
         </div>
 
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <p className="text-xs text-slate-500">Sumber</p>
+            <p className="text-xs text-slate-500">{t("userNotificationDetail.sourceLabel")}</p>
             <p className="text-sm font-semibold text-slate-800">
-              {notification.sourceType === "ADMIN" ? "Admin" : "Sistem"} • {notification.senderName}
+              {notification.sourceType === "ADMIN" ? t("userNotificationDetail.sourceAdmin") : t("userNotificationDetail.sourceSystem")} • {notification.senderName}
             </p>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <p className="text-xs text-slate-500">Kanal Notifikasi</p>
+            <p className="text-xs text-slate-500">{t("userNotificationDetail.channelLabel")}</p>
             <p className="text-sm font-semibold text-slate-800">
               {notification.channels.length > 0 ? notification.channels.join(", ") : "push"}
             </p>
@@ -252,7 +241,7 @@ export default function UserNotificationDetailPage() {
         </div>
 
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
-          <h2 className="text-sm font-semibold text-blue-900">Rekomendasi Cepat</h2>
+          <h2 className="text-sm font-semibold text-blue-900">{t("userNotificationDetail.recommendationTitle")}</h2>
           <p className="mt-1 text-sm text-blue-900/90">{levelQuickAction[notification.riskLevel]}</p>
         </div>
 
@@ -261,13 +250,13 @@ export default function UserNotificationDetailPage() {
             href={notification.guideHref}
             className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Buka Tab Panduan Sesuai Level
+            {t("userNotificationDetail.btnGuides")}
           </Link>
           <Link
             href="/user/notifications"
             className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            Kembali ke Daftar Notifikasi
+            {t("userNotificationDetail.btnBack")}
           </Link>
         </div>
       </Card>

@@ -1,20 +1,25 @@
+"use client";
+
 import Link from "next/link";
-
-const productLinks = [
-  { label: "Dashboard Real-Time", href: "/#realtime-dashboard" },
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Peta Sensor", href: "/map" },
-  { label: "Edukasi & FAQ", href: "/#edukasi" },
-];
-
-const companyLinks = [
-  { label: "Tentang Kami", href: "/#home" },
-  { label: "Kontak Darurat", href: "/emergency" },
-  { label: "Status & Legend", href: "/#status-legend" },
-  { label: "Halaman Kontak", href: "/contact" },
-];
+import { useLanguage } from "@/lib/LanguageContext";
 
 export function Footer() {
+  const { t } = useLanguage();
+
+  const productLinks = [
+    { label: t("footer.productLinks.realtimeDashboard"), href: "/#realtime-dashboard" },
+    { label: t("footer.productLinks.dashboard"), href: "/dashboard" },
+    { label: t("footer.productLinks.map"), href: "/map" },
+    { label: t("footer.productLinks.educationFAQ"), href: "/#edukasi" },
+  ];
+
+  const companyLinks = [
+    { label: t("footer.companyLinks.aboutUs"), href: "/#home" },
+    { label: t("footer.companyLinks.emergencyContact"), href: "/emergency" },
+    { label: t("footer.companyLinks.statusLegend"), href: "/#status-legend" },
+    { label: t("footer.companyLinks.contactPage"), href: "/contact" },
+  ];
+
   return (
     <footer id="contact" className="bg-linear-to-br from-blue-950 via-blue-900 to-blue-800 text-blue-100">
       <div className="mx-auto w-full max-w-6xl px-6 py-10 md:py-12">
@@ -30,13 +35,12 @@ export function Footer() {
               </div>
               <div>
                 <p className="text-xl font-bold leading-none text-white md:text-2xl">EWS Flood Guard</p>
-                <p className="mt-1 text-xs font-medium text-blue-200 md:text-sm">Sistem Peringatan Dini Banjir</p>
+                <p className="mt-1 text-xs font-medium text-blue-200 md:text-sm">{t("footer.tagline")}</p>
               </div>
             </div>
 
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-blue-100/90 md:text-base">
-              Platform monitoring real-time untuk membantu admin memantau sensor, memvalidasi alert, dan mempercepat
-              koordinasi respons banjir.
+              {t("footer.description")}
             </p>
 
             <div className="mt-4 flex items-center gap-2.5">
@@ -59,7 +63,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-white md:text-xl">Produk</h3>
+            <h3 className="text-lg font-semibold text-white md:text-xl">{t("footer.products")}</h3>
             <ul className="mt-3.5 space-y-2.5 text-sm md:text-base">
               {productLinks.map((item) => (
                 <li key={item.href}>
@@ -72,7 +76,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-white md:text-xl">Perusahaan</h3>
+            <h3 className="text-lg font-semibold text-white md:text-xl">{t("footer.company")}</h3>
             <ul className="mt-3.5 space-y-2.5 text-sm md:text-base">
               {companyLinks.map((item) => (
                 <li key={item.href}>
@@ -85,7 +89,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-white md:text-xl">Kontak</h3>
+            <h3 className="text-lg font-semibold text-white md:text-xl">{t("footer.contact")}</h3>
             <ul className="mt-3.5 space-y-3 text-sm text-blue-100/95 md:text-base">
               <li className="flex items-center gap-2.5">
                 <span aria-hidden="true">✉️</span>
@@ -111,7 +115,7 @@ export function Footer() {
                 Login
               </Link>
               <Link href="/education" className="transition-colors hover:text-white">
-                Bantuan
+                {t("footer.help")}
               </Link>
             </div>
           </div>

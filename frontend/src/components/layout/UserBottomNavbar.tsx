@@ -5,14 +5,17 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, Map, PhoneCall, BookOpen } from "lucide-react";
 
+import { useLanguage } from "@/lib/LanguageContext";
+
 export function UserBottomNavbar() {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const userNavLinks = [
-    { href: "/user/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/user/map", label: "Peta Sensor", icon: Map },
-    { href: "/user/emergency", label: "Kontak Darurat", icon: PhoneCall },
-    { href: "/user/education", label: "Panduan", icon: BookOpen },
+    { href: "/user/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { href: "/user/map", label: t("nav.map"), icon: Map },
+    { href: "/user/emergency", label: t("nav.emergency"), icon: PhoneCall },
+    { href: "/user/education", label: t("nav.education"), icon: BookOpen },
   ];
 
   const isRouteActive = (href: string) => {

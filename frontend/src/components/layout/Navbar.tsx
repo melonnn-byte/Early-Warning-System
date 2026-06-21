@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserNotifications } from "@/hooks/useUserNotifications";
 import { cn } from "@/lib/utils";
+import { useLanguage, LanguageToggle } from "@/lib/LanguageContext";
 
 interface NavbarItem {
   href: string;
@@ -28,6 +29,7 @@ export function Navbar() {
   const pathname = usePathname();
   const { isAuthenticated, logout, user } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead, reload } = useUserNotifications();
+  const { t, language } = useLanguage();
   
   const [activeSection, setActiveSection] = useState("home");
   const [isHeroMode, setIsHeroMode] = useState(false);
@@ -44,7 +46,26 @@ export function Navbar() {
   const isLoggedInUser = isAuthenticated && !!user;
   const useUserNavbar = isUserRoute || isLoggedInUser;
 
-  const links = useMemo<NavbarItem[]>(() => (useUserNavbar ? userNavLinks : landingNavLinks), [useUserNavbar]);
+  const links = useMemo<NavbarItem[]>(() => {
+    const rawLinks = useUserNavbar ? userNavLinks : landingNavLinks;
+    return rawLinks.map((item) => {
+      let key = "nav.home";
+      if (item.id) {
+        if (item.id === "realtime-dashboard") key = "nav.realtimeDashboard";
+        else if (item.id === "status-legend") key = "nav.statusLegend";
+        else if (item.id === "emergency-action") key = "nav.emergencyAction";
+        else if (item.id === "edukasi") key = "nav.edukasi";
+        else key = `nav.${item.id}`;
+      } else {
+        const pathPart = item.href.replace("/user/", "").replace("/", "");
+        key = `nav.${pathPart}`;
+      }
+      return {
+        ...item,
+        label: t(key),
+      };
+    });
+  }, [useUserNavbar, t]);
 
   // Handle klik di luar area dropdown untuk menutupnya
   useEffect(() => {
@@ -202,14 +223,16 @@ export function Navbar() {
             isHomePage && isHeroMode ? "text-white" : "text-blue-700",
           )}
         >
-          <Image
-            src="/logo.png"
-            alt="EWS Flood Guard"
-            width={36}
-            height={36}
-            priority
-            className="h-9 w-9 shrink-0 rounded-full object-contain"
-          />
+          <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-white p-1 shadow-sm border border-slate-100/80 shrink-0">
+            <Image
+              src="/logo.png"
+              alt="EWS Flood Guard"
+              width={52}
+              height={52}
+              priority
+              className="h-full w-full object-contain"
+            />
+          </div>
           EWS Flood Guard
         </Link>
         <ul className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -245,6 +268,11 @@ export function Navbar() {
             </li>
           ))}
 
+          {/* Language Switcher */}
+          <li className="flex items-center">
+            <LanguageToggle isHeroMode={isHomePage && isHeroMode} className="mr-2" />
+          </li>
+
           {/* Ikon Notifikasi (Muncul jika user sudah login) */}
           {isLoggedInUser && (
             <li className="relative" ref={notificationsRef}>
@@ -277,8 +305,8 @@ export function Navbar() {
                 <div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl animate-in fade-in slide-in-from-top-2">
                   <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-800">Notifikasi</h3>
-                      <p className="text-[10px] text-slate-500">{unreadCount} belum dibaca</p>
+                      <h3 className="text-sm font-semibold text-slate-800">{t("nav.adminNotifications")}</h3>
+                      <p className="text-[10px] text-slate-500">{unreadCount} {language === "en" ? "unread" : "belum dibaca"}</p>
                     </div>
                     {unreadCount > 0 && (
                       <button
@@ -288,7 +316,7 @@ export function Navbar() {
                         }}
                         className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition"
                       >
-                        Tandai semua dibaca
+                        {language === "en" ? "Mark all as read" : "Tandai semua dibaca"}
                       </button>
                     )}
                   </div>
@@ -296,7 +324,7 @@ export function Navbar() {
                   <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
                     {notifications.length === 0 ? (
                       <div className="px-4 py-8 text-center text-xs text-slate-500">
-                        Belum ada notifikasi baru.
+                        {language === "en" ? "No new notifications." : "Belum ada notifikasi baru."}
                       </div>
                     ) : (
                       notifications.slice(0, 5).map((item) => (
@@ -328,7 +356,7 @@ export function Navbar() {
                                   : "bg-amber-100 text-amber-700"
                               )}
                             >
-                              {item.riskLevel === "red" ? "Bahaya" : item.riskLevel === "orange" ? "Waspada" : "Aman"}
+                              {item.riskLevel === "red" ? (language === "en" ? "Danger" : "Bahaya") : item.riskLevel === "orange" ? (language === "en" ? "Alert" : "Waspada") : (language === "en" ? "Safe" : "Aman")}
                             </span>
                           </div>
                           <p className="line-clamp-2 text-slate-600 text-[11px] leading-relaxed">
@@ -351,7 +379,7 @@ export function Navbar() {
                       }}
                       className="inline-flex w-full items-center justify-center rounded-lg py-2 text-xs font-bold text-blue-600 hover:bg-blue-100/50 hover:text-blue-700 transition"
                     >
-                      Lihat Semua
+                      {language === "en" ? "View All" : "Lihat Semua"}
                     </button>
                   </div>
                 </div>
@@ -395,21 +423,21 @@ export function Navbar() {
                         onClick={() => navigateTo("/user/profile")}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
                       >
-                        Profile
+                        {t("nav.profile")}
                       </button>
                       <button
                         type="button"
                         onClick={() => navigateTo("/user/settings")}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
                       >
-                        Pengaturan
+                        {t("nav.settings")}
                       </button>
                       <button
                         type="button"
                         onClick={() => navigateTo("/user/faq")}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-700 hover:bg-slate-100"
                       >
-                        FAQ Bantuan
+                        {t("nav.faq")}
                       </button>
                     </div>
 
@@ -423,7 +451,7 @@ export function Navbar() {
                         }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-bold text-rose-600 hover:bg-rose-50"
                       >
-                        Keluar
+                        {t("nav.logout")}
                       </button>
                     </div>
                   </div>
@@ -440,7 +468,7 @@ export function Navbar() {
                     : "bg-blue-600 text-white hover:bg-blue-700",
                 )}
               >
-                Login
+                {t("auth.loginBtn")}
               </Link>
             )}
           </li>
@@ -449,10 +477,10 @@ export function Navbar() {
 
       <ConfirmDialog
         open={logoutConfirmOpen}
-        title="Keluar dari akun?"
-        description="Anda akan keluar dari sesi saat ini dan perlu login kembali untuk mengakses fitur pengguna."
-        confirmText="Ya, logout"
-        cancelText="Tetap di sini"
+        title={t("common.logoutConfirmTitle")}
+        description={t("common.logoutConfirmDesc")}
+        confirmText={t("common.yesLogout")}
+        cancelText={t("common.cancel")}
         onCancel={() => setLogoutConfirmOpen(false)}
         onConfirm={() => {
           void handleLogout();

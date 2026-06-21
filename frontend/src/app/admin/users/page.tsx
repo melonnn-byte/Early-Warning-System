@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface UserFormState {
   name: string;
@@ -48,6 +49,7 @@ function toApiRole(role: UserRole): "ADMIN" | "USER" {
 }
 
 export default function AdminUsersPage() {
+  const { t, language } = useLanguage();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -74,7 +76,7 @@ export default function AdminUsersPage() {
         })),
       );
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat data pengguna.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminUsers.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -82,7 +84,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     void loadUsers();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!savedMessage) {
@@ -129,10 +131,10 @@ export default function AdminUsersPage() {
     setErrorMessage(null);
     try {
       await api.delete(`/users/${id}`);
-      setSavedMessage("Pengguna berhasil dihapus.");
+      setSavedMessage(t("adminUsers.deleteSuccess"));
       await loadUsers();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal menghapus pengguna.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminUsers.deleteFailed"));
     }
   };
 
@@ -151,7 +153,7 @@ export default function AdminUsersPage() {
           role: toApiRole(form.role),
           ...(form.password ? { password: form.password } : {}),
         });
-        setSavedMessage("Pengguna berhasil diperbarui.");
+        setSavedMessage(t("adminUsers.saveSuccess"));
       } else {
         await api.post("/users", {
           name: form.name,
@@ -161,17 +163,17 @@ export default function AdminUsersPage() {
           institution: form.institution,
           role: toApiRole(form.role),
         });
-        setSavedMessage("Pengguna baru berhasil ditambahkan.");
+        setSavedMessage(t("adminUsers.addSuccess"));
       }
 
       setOpen(false);
       await loadUsers();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal menyimpan data pengguna.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminUsers.saveFailed"));
     }
   };
 
-  const totalLabel = totalCount.toLocaleString("id-ID");
+  const totalLabel = totalCount.toLocaleString(language === "en" ? "en-US" : "id-ID");
 
   return (
     <main className="space-y-6">
@@ -183,12 +185,12 @@ export default function AdminUsersPage() {
           <div className="max-w-3xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700 shadow-sm backdrop-blur">
               <span className="size-2 rounded-full bg-blue-500" />
-              Flood Guard · User Administration
+              {t("adminUsers.inboxLabel")}
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">Manajemen Pengguna</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{t("adminUsers.title")}</h1>
               <p className="max-w-2xl text-sm leading-6 text-slate-600 md:text-[15px]">
-                Kelola akses akun admin dan user dengan role-based access control (RBAC) secara rapi, aman, dan intuitif.
+                {t("adminUsers.subtitle")}
               </p>
             </div>
           </div>
@@ -198,7 +200,7 @@ export default function AdminUsersPage() {
             className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
           >
             <span className="text-base leading-none">＋</span>
-            Tambah User
+            {t("adminUsers.addBtn")}
           </Button>
         </div>
       </div>
@@ -207,9 +209,9 @@ export default function AdminUsersPage() {
         <Card className="border border-slate-100 bg-white/95 p-5 shadow-sm shadow-slate-200/60 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-500">Total Users</p>
+              <p className="text-sm font-medium text-slate-500">{t("adminUsers.statsTotal")}</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{totalCount}</p>
-              <p className="mt-1 text-xs text-slate-500">Akun terdaftar dalam sistem</p>
+              <p className="mt-1 text-xs text-slate-500">{t("adminUsers.statsTotalDesc")}</p>
             </div>
             <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -223,9 +225,9 @@ export default function AdminUsersPage() {
         <Card className="border border-slate-100 bg-white/95 p-5 shadow-sm shadow-slate-200/60 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-500">Role Admin</p>
+              <p className="text-sm font-medium text-slate-500">{t("adminUsers.statsAdmin")}</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-blue-700">{adminCount}</p>
-              <p className="mt-1 text-xs text-slate-500">Akses penuh sistem</p>
+              <p className="mt-1 text-xs text-slate-500">{t("adminUsers.statsAdminDesc")}</p>
             </div>
             <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -244,9 +246,9 @@ export default function AdminUsersPage() {
         <Card className="border border-slate-100 bg-white/95 p-5 shadow-sm shadow-slate-200/60 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-500">Role User</p>
+              <p className="text-sm font-medium text-slate-500">{t("adminUsers.statsUser")}</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-emerald-700">{userCount}</p>
-              <p className="mt-1 text-xs text-slate-500">Akses dashboard pengguna</p>
+              <p className="mt-1 text-xs text-slate-500">{t("adminUsers.statsUserDesc")}</p>
             </div>
             <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -272,12 +274,12 @@ export default function AdminUsersPage() {
       <Card className="overflow-hidden border border-slate-100 bg-white/96 p-0 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.28)] backdrop-blur-sm">
         <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight text-slate-900">Daftar Pengguna</h2>
-            <p className="mt-1 text-sm text-slate-500">Kelola role dan informasi akun petugas.</p>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">{t("adminUsers.tableTitle")}</h2>
+            <p className="mt-1 text-sm text-slate-500">{t("adminUsers.tableSubtitle")}</p>
           </div>
           <div className="inline-flex items-center gap-2 self-start rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 md:self-auto">
             <span className="size-2 rounded-full bg-slate-400" />
-            Total {totalLabel} User
+            {t("adminUsers.tableTotal").replace("{count}", totalLabel)}
           </div>
         </div>
 
@@ -285,11 +287,11 @@ export default function AdminUsersPage() {
           <table className="min-w-245 w-full text-left text-sm">
             <thead className="bg-slate-50/80 text-[11px] uppercase tracking-[0.16em] text-slate-500">
               <tr>
-                <th className="px-6 py-4 font-semibold">Nama</th>
-                <th className="px-6 py-4 font-semibold">Email</th>
-                <th className="px-6 py-4 font-semibold">Nomor WhatsApp</th>
-                <th className="px-6 py-4 font-semibold">Role</th>
-                <th className="px-6 py-4 font-semibold">Aksi</th>
+                <th className="px-6 py-4 font-semibold">{t("adminUsers.colName")}</th>
+                <th className="px-6 py-4 font-semibold">{t("adminUsers.colEmail")}</th>
+                <th className="px-6 py-4 font-semibold">{t("adminUsers.colPhone")}</th>
+                <th className="px-6 py-4 font-semibold">{t("adminUsers.colRole")}</th>
+                <th className="px-6 py-4 font-semibold">{t("adminUsers.colAction")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -309,7 +311,7 @@ export default function AdminUsersPage() {
                           : "bg-emerald-50 text-emerald-700 ring-emerald-100"
                       }`}
                     >
-                      {user.role === "admin" ? "Admin" : "User"}
+                      {user.role === "admin" ? t("adminUsers.roleAdminLabel") : t("adminUsers.roleUserLabel")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -323,7 +325,7 @@ export default function AdminUsersPage() {
                           <path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
                           <path d="m13 7 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                         </svg>
-                        Edit
+                        {language === "en" ? "Edit" : "Edit"}
                       </button>
 
                       <button
@@ -336,7 +338,7 @@ export default function AdminUsersPage() {
                           <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7m-7 0v11a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V7" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
                           <path d="M10 11v4M14 11v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                         </svg>
-                        Hapus
+                        {language === "en" ? "Delete" : "Hapus"}
                       </button>
                     </div>
                   </td>
@@ -349,7 +351,7 @@ export default function AdminUsersPage() {
 
       {loading && (
         <div className="rounded-2xl border border-slate-100 bg-white/90 px-4 py-3 text-sm text-slate-500 shadow-sm">
-          Memuat data pengguna...
+          {language === "en" ? "Loading user data..." : "Memuat data pengguna..."}
         </div>
       )}
 
@@ -368,103 +370,105 @@ export default function AdminUsersPage() {
               </svg>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900">Berhasil</p>
+              <p className="text-sm font-semibold text-slate-900">
+                {language === "en" ? "Success" : "Berhasil"}
+              </p>
               <p className="mt-1 text-sm leading-5 text-slate-600">{savedMessage}</p>
             </div>
           </div>
         </div>
       )}
 
-      <Modal open={open} title={editingId ? "Edit User" : "Tambah User"} onClose={() => setOpen(false)}>
+      <Modal open={open} title={editingId ? t("adminUsers.editTitle") : t("adminUsers.addTitle")} onClose={() => setOpen(false)}>
         <form onSubmit={submitUser} className="space-y-3">
           <label className="block text-sm text-slate-700">
-            Nama Lengkap
+            {t("adminUsers.fieldName")}
             <input
               required
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900"
             />
           </label>
 
           <label className="block text-sm text-slate-700">
-            Email
+            {t("adminUsers.fieldEmail")}
             <input
               type="email"
               required
               value={form.email}
               onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900"
             />
           </label>
 
           <label className="block text-sm text-slate-700">
-            Nomor WhatsApp
+            {t("adminUsers.fieldPhone")}
             <input
               required
               value={form.whatsappNumber}
               onChange={(event) => setForm((prev) => ({ ...prev, whatsappNumber: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900"
               placeholder="62812xxxxxxx"
             />
           </label>
 
           <label className="block text-sm text-slate-700">
-            Password
+            {t("adminUsers.fieldPassword")}
             <input
               type="password"
               required={!editingId}
               value={form.password}
               onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder={editingId ? "Kosongkan jika tidak diubah" : "Masukkan password"}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900"
+              placeholder={editingId ? t("adminUsers.fieldPasswordPlaceholderChange") : t("adminUsers.fieldPasswordPlaceholderAdd")}
             />
-            <p className="mt-1 text-xs text-slate-500">Password akan di-enkripsi menggunakan bcrypt di backend Nest.js.</p>
+            <p className="mt-1 text-xs text-slate-500">{t("adminUsers.fieldPasswordDesc")}</p>
           </label>
 
           <label className="block text-sm text-slate-700">
-            Instansi
+            {t("adminUsers.fieldInstitution")}
             <input
               value={form.institution}
               onChange={(event) => setForm((prev) => ({ ...prev, institution: event.target.value }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-              placeholder="Contoh: BPBD Kota"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900"
+              placeholder={t("adminUsers.fieldInstitutionPlaceholder")}
             />
           </label>
 
           <label className="block text-sm text-slate-700">
-            Pilih Role
+            {t("adminUsers.fieldRole")}
             <select
               value={form.role}
               onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value as UserRole }))}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-900"
             >
-              <option value="admin">Admin</option>
-              <option value="user">User</option>
+              <option value="admin">{t("adminUsers.roleAdminLabel")}</option>
+              <option value="user">{t("adminUsers.roleUserLabel")}</option>
             </select>
           </label>
 
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-            <p className="font-semibold text-slate-700">Hak Akses:</p>
-            <p>Admin: akses penuh, termasuk threshold, hapus data, dan kelola pengguna.</p>
-            <p>User: memantau dashboard pengguna, notifikasi, dan informasi darurat.</p>
+            <p className="font-semibold text-slate-700">{t("adminUsers.roleInfoTitle")}</p>
+            <p>{t("adminUsers.roleInfoAdmin")}</p>
+            <p>{t("adminUsers.roleInfoUser")}</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
-              Batal
+              {t("adminUsers.cancelBtn")}
             </Button>
-            <Button type="submit">Simpan User</Button>
+            <Button type="submit">{t("adminUsers.saveBtn")}</Button>
           </div>
         </form>
       </Modal>
 
       <ConfirmDialog
         open={Boolean(deleteConfirm)}
-        title="Hapus pengguna ini?"
-        description={`Data akun ${deleteConfirm?.name ?? "pengguna"} akan dihapus dari sistem.`}
-        confirmText="Ya, hapus"
-        cancelText="Batal"
+        title={t("adminUsers.deleteConfirmTitle")}
+        description={t("adminUsers.deleteConfirmDesc").replace("{name}", deleteConfirm?.name ?? "pengguna")}
+        confirmText={t("adminUsers.deleteConfirmYes")}
+        cancelText={t("adminUsers.deleteConfirmCancel")}
         onCancel={() => setDeleteConfirm(null)}
         onConfirm={() => {
           const selected = deleteConfirm;

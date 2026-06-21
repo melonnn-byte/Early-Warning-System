@@ -1,5 +1,4 @@
 "use client";
-
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -7,6 +6,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/LanguageContext";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type EmergencyCategory = "BPBD" | "SAR" | "AMBULANCE" | "POLICE" | "HOSPITAL" | "OTHER";
@@ -35,15 +35,6 @@ const emptyForm: ContactFormState = {
   isActive: true,
 };
 
-const CATEGORY_LABELS: Record<EmergencyCategory, string> = {
-  BPBD: "BPBD",
-  SAR: "SAR / Basarnas",
-  AMBULANCE: "Ambulans",
-  POLICE: "Polisi",
-  HOSPITAL: "Rumah Sakit",
-  OTHER: "Lainnya",
-};
-
 const CATEGORY_COLORS: Record<EmergencyCategory, string> = {
   BPBD: "bg-blue-50 text-blue-700 border-blue-200",
   SAR: "bg-orange-50 text-orange-700 border-orange-200",
@@ -64,6 +55,7 @@ function getErrorMessage(err: unknown): string {
 
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AdminEmergencyContactsPage() {
+  const { t, language } = useLanguage();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +69,24 @@ export default function AdminEmergencyContactsPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
+  const getCategoryLabel = (cat: EmergencyCategory) => {
+    switch (cat) {
+      case "BPBD":
+        return "BPBD";
+      case "SAR":
+        return "SAR / Basarnas";
+      case "AMBULANCE":
+        return language === "en" ? "Ambulance" : "Ambulans";
+      case "POLICE":
+        return language === "en" ? "Police" : "Polisi";
+      case "HOSPITAL":
+        return language === "en" ? "Hospital" : "Rumah Sakit";
+      case "OTHER":
+      default:
+        return language === "en" ? "Other" : "Lainnya";
+    }
+  };
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -84,11 +94,11 @@ export default function AdminEmergencyContactsPage() {
       const res = await api.get("/emergency-contacts/admin/all");
       setContacts((res.data?.data ?? res.data ?? []) as EmergencyContact[]);
     } catch (err) {
-      setError(getErrorMessage(err) || "Gagal memuat data kontak darurat.");
+      setError(getErrorMessage(err) || t("adminEmergencyContacts.loadFailed"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -97,14 +107,14 @@ export default function AdminEmergencyContactsPage() {
   // Auto-dismiss banners
   useEffect(() => {
     if (!successMsg) return;
-    const t = setTimeout(() => setSuccessMsg(null), 5000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSuccessMsg(null), 5000);
+    return () => clearTimeout(timer);
   }, [successMsg]);
 
   useEffect(() => {
     if (!errorMsg) return;
-    const t = setTimeout(() => setErrorMsg(null), 5000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setErrorMsg(null), 5000);
+    return () => clearTimeout(timer);
   }, [errorMsg]);
 
   const openCreate = () => {
@@ -131,15 +141,15 @@ export default function AdminEmergencyContactsPage() {
     try {
       if (editingId) {
         await api.patch(`/emergency-contacts/${editingId}`, form);
-        setSuccessMsg("Kontak darurat berhasil diperbarui.");
+        setSuccessMsg(t("adminEmergencyContacts.saveSuccess"));
       } else {
         await api.post("/emergency-contacts", form);
-        setSuccessMsg("Kontak darurat baru berhasil ditambahkan.");
+        setSuccessMsg(t("adminEmergencyContacts.addSuccess"));
       }
       setModalOpen(false);
       void load();
     } catch (err) {
-      setErrorMsg(getErrorMessage(err) || "Gagal menyimpan data.");
+      setErrorMsg(getErrorMessage(err) || t("adminEmergencyContacts.saveError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -149,10 +159,10 @@ export default function AdminEmergencyContactsPage() {
     setErrorMsg(null);
     try {
       await api.delete(`/emergency-contacts/${id}`);
-      setSuccessMsg("Kontak darurat berhasil dihapus.");
+      setSuccessMsg(t("adminEmergencyContacts.deleteSuccess"));
       void load();
     } catch (err) {
-      setErrorMsg(getErrorMessage(err) || "Gagal menghapus kontak.");
+      setErrorMsg(getErrorMessage(err) || t("adminEmergencyContacts.deleteFailed"));
     }
   };
 
@@ -168,15 +178,14 @@ export default function AdminEmergencyContactsPage() {
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-blue-700">Command Center</p>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Manajemen Kontak Darurat</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("adminEmergencyContacts.title")}</h1>
               <p className="max-w-2xl text-sm text-slate-600">
-                Kelola nomor darurat resmi yang tampil di halaman publik dan aplikasi mobile. Data ini langsung
-                terintegrasi ke seluruh platform.
+                {t("adminEmergencyContacts.subtitle")}
               </p>
             </div>
           </div>
           <Button onClick={openCreate} className="bg-blue-600 text-white shadow-sm hover:bg-blue-700">
-            + Tambah Kontak
+            {t("adminEmergencyContacts.addBtn")}
           </Button>
         </div>
       </Card>
@@ -184,19 +193,19 @@ export default function AdminEmergencyContactsPage() {
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="rounded-xl border-slate-200/70 bg-white/80 p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Total Kontak</p>
+          <p className="text-sm text-slate-500">{t("adminEmergencyContacts.totalContacts")}</p>
           <p className="mt-1 text-3xl font-bold text-slate-900">{contacts.length}</p>
-          <p className="text-xs text-slate-500">Terdaftar di database</p>
+          <p className="text-xs text-slate-500">{t("adminEmergencyContacts.totalContactsDesc")}</p>
         </Card>
         <Card className="rounded-xl border-emerald-100 bg-emerald-50/60 p-4 shadow-sm">
-          <p className="text-sm text-emerald-700">Kontak Aktif</p>
+          <p className="text-sm text-emerald-700">{t("adminEmergencyContacts.activeContacts")}</p>
           <p className="mt-1 text-3xl font-bold text-emerald-700">{activeCount}</p>
-          <p className="text-xs text-emerald-600">Tampil di halaman publik</p>
+          <p className="text-xs text-emerald-600">{t("adminEmergencyContacts.activeContactsDesc")}</p>
         </Card>
         <Card className="rounded-xl border-slate-200/70 bg-white/80 p-4 shadow-sm">
-          <p className="text-sm text-slate-500">Kontak Non-aktif</p>
+          <p className="text-sm text-slate-500">{t("adminEmergencyContacts.inactiveContacts")}</p>
           <p className="mt-1 text-3xl font-bold text-slate-500">{inactiveCount}</p>
-          <p className="text-xs text-slate-500">Tersembunyi dari publik</p>
+          <p className="text-xs text-slate-500">{t("adminEmergencyContacts.inactiveContactsDesc")}</p>
         </Card>
       </div>
 
@@ -230,22 +239,22 @@ export default function AdminEmergencyContactsPage() {
         <Card className="border-rose-200 bg-rose-50/80 shadow-sm">
           <p className="text-sm font-semibold text-rose-700">{error}</p>
           <Button onClick={() => void load()} className="mt-3 bg-white text-rose-700 hover:bg-rose-50">
-            Coba Lagi
+            {t("adminEmergencyContacts.retryBtn")}
           </Button>
         </Card>
       ) : (
         <Card className="overflow-hidden border-slate-200/70 bg-white/80 p-0 shadow-sm backdrop-blur-xl">
           <div className="hidden grid-cols-[2fr_1.2fr_1.2fr_1fr_1fr] gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 md:grid">
-            <div>Nama Layanan</div>
-            <div>Nomor</div>
-            <div>Kategori</div>
-            <div>Status</div>
-            <div className="text-right">Aksi</div>
+            <div>{t("adminEmergencyContacts.colName")}</div>
+            <div>{t("adminEmergencyContacts.colPhone")}</div>
+            <div>{t("adminEmergencyContacts.colCategory")}</div>
+            <div>{t("adminEmergencyContacts.colStatus")}</div>
+            <div className="text-right">{t("adminEmergencyContacts.colAction")}</div>
           </div>
 
           {contacts.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-slate-500">
-              Belum ada kontak darurat. Klik &ldquo;Tambah Kontak&rdquo; untuk menambahkan.
+              {t("adminEmergencyContacts.emptyContacts")}
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
@@ -269,7 +278,7 @@ export default function AdminEmergencyContactsPage() {
                         CATEGORY_COLORS[contact.category],
                       )}
                     >
-                      {CATEGORY_LABELS[contact.category]}
+                      {getCategoryLabel(contact.category)}
                     </span>
                   </div>
 
@@ -282,7 +291,7 @@ export default function AdminEmergencyContactsPage() {
                           : "bg-slate-100 text-slate-500",
                       )}
                     >
-                      {contact.isActive ? "Aktif" : "Non-aktif"}
+                      {contact.isActive ? t("adminEmergencyContacts.statusActive") : t("adminEmergencyContacts.statusInactive")}
                     </span>
                   </div>
 
@@ -318,72 +327,72 @@ export default function AdminEmergencyContactsPage() {
       {/* Modal – Create / Edit */}
       <Modal
         open={modalOpen}
-        title={editingId ? "Edit Kontak Darurat" : "Tambah Kontak Darurat"}
+        title={editingId ? t("adminEmergencyContacts.editTitle") : t("adminEmergencyContacts.addTitle")}
         onClose={() => setModalOpen(false)}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {errorMsg && (
             <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-700">
-              <p className="font-semibold">Gagal Menyimpan</p>
+              <p className="font-semibold">{t("adminEmergencyContacts.saveFailed")}</p>
               <p className="mt-1 text-xs">{errorMsg}</p>
             </div>
           )}
 
           <label className="block text-sm font-medium text-slate-700">
-            Nama Layanan
+            {t("adminEmergencyContacts.fieldName")}
             <input
               required
               value={form.name}
               onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
-              placeholder="cth: BPBD Kota Padang"
+              placeholder={t("adminEmergencyContacts.fieldNamePlaceholder")}
             />
           </label>
 
           <label className="block text-sm font-medium text-slate-700">
-            Nomor Telepon
+            {t("adminEmergencyContacts.fieldPhone")}
             <input
               required
               value={form.phone}
               onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
               className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-mono focus:border-blue-500 focus:outline-none"
-              placeholder="cth: 117 atau +62xxx"
+              placeholder={t("adminEmergencyContacts.fieldPhonePlaceholder")}
             />
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
-              Kategori
+              {t("adminEmergencyContacts.fieldCategory")}
               <select
                 value={form.category}
                 onChange={(e) => setForm((p) => ({ ...p, category: e.target.value as EmergencyCategory }))}
                 className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
               >
-                {(Object.entries(CATEGORY_LABELS) as [EmergencyCategory, string][]).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
+                {(Object.keys(CATEGORY_COLORS) as EmergencyCategory[]).map((val) => (
+                  <option key={val} value={val}>{getCategoryLabel(val)}</option>
                 ))}
               </select>
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
-              Status
+              {t("adminEmergencyContacts.fieldStatus")}
               <select
                 value={form.isActive ? "true" : "false"}
                 onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.value === "true" }))}
                 className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
               >
-                <option value="true">Aktif (tampil publik)</option>
-                <option value="false">Non-aktif (tersembunyi)</option>
+                <option value="true">{t("adminEmergencyContacts.statusActivePub")}</option>
+                <option value="false">{t("adminEmergencyContacts.statusInactiveHidden")}</option>
               </select>
             </label>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} disabled={isSubmitting}>
-              Batal
+              {t("adminEmergencyContacts.deleteConfirmCancel")}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Menyimpan..." : "Simpan"}
+              {isSubmitting ? t("adminSensors.savingLoader") : t("adminSensors.saveSensorBtn")}
             </Button>
           </div>
         </form>
@@ -392,10 +401,10 @@ export default function AdminEmergencyContactsPage() {
       {/* Delete Confirm */}
       <ConfirmDialog
         open={Boolean(deleteConfirm)}
-        title="Hapus kontak ini?"
-        description={`Apakah Anda yakin ingin menghapus "${deleteConfirm?.name ?? ""}"? Kontak ini tidak akan lagi tampil di platform publik.`}
-        confirmText="Ya, hapus"
-        cancelText="Batal"
+        title={t("adminEmergencyContacts.deleteConfirmTitle")}
+        description={t("adminEmergencyContacts.deleteConfirmDesc").replace("{name}", deleteConfirm?.name ?? "")}
+        confirmText={t("adminEmergencyContacts.deleteConfirmYes")}
+        cancelText={t("adminEmergencyContacts.deleteConfirmCancel")}
         onCancel={() => setDeleteConfirm(null)}
         onConfirm={() => {
           const selected = deleteConfirm;

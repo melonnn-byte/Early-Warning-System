@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/api";
+import { useLanguage, LanguageToggle } from "@/lib/LanguageContext";
 
 export default function AdminLayout({ children }: PropsWithChildren) {
   const router = useRouter();
   const { loading, isAuthenticated, logout, user } = useAuth();
+  const { t, language } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -67,31 +69,31 @@ export default function AdminLayout({ children }: PropsWithChildren) {
   };
 
   if (loading) {
-    return <main className="mx-auto w-full max-w-2xl px-6 py-10 text-sm text-slate-600">Memuat sesi admin...</main>;
+    return <main className="mx-auto w-full max-w-2xl px-6 py-10 text-sm text-slate-600">{t("common.loadingAdminSession")}</main>;
   }
 
   if (!isAuthenticated || user?.role !== "admin") {
     return (
       <main className="mx-auto w-full max-w-2xl px-6 py-10">
-        <h1 className="text-2xl font-bold text-slate-900">Akses Admin Diperlukan</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("common.adminAccessRequired")}</h1>
         <p className="mt-2 text-sm text-slate-600">
           {isAuthenticated
-            ? "Akun ini bukan admin. Gunakan akun admin atau lanjut ke dashboard user."
-            : "Silakan login untuk mengakses dashboard admin."}
+            ? t("common.adminAccessRequiredDesc")
+            : t("common.pleaseLoginAdmin")}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href="/login"
             className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
-            Ke Halaman Login
+            {t("common.toLoginPage")}
           </Link>
           {isAuthenticated && (
             <Link
               href="/user/dashboard"
               className="inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              Ke Dashboard User
+              {t("common.toUserDashboard")}
             </Link>
           )}
         </div>
@@ -139,7 +141,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
               </svg>
               <input
                 type="text"
-                placeholder="Cari sensor, area, laporan, atau pengguna..."
+                placeholder={t("common.searchPlaceholder")}
                 className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition-all placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -149,8 +151,10 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                 <rect x="3" y="4" width="18" height="17" rx="3" />
                 <path strokeLinecap="round" d="M8 2.8v2.4M16 2.8v2.4M3 9h18" />
               </svg>
-              Periode: {new Date().getFullYear()}/{new Date().getFullYear() + 1}
+              {t("common.periodLabel")}: {new Date().getFullYear()}/{new Date().getFullYear() + 1}
             </span>
+
+            <LanguageToggle isHeroMode={false} className="mr-1" />
 
             <Link
               href="/admin/notifications"
@@ -174,7 +178,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
             <div className="hidden items-center gap-3 lg:flex">
               <div className="text-right">
                 <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
-                <p className="text-xs text-slate-500">Administrator</p>
+                <p className="text-xs text-slate-500">{language === "en" ? "Administrator" : "Administrator"}</p>
               </div>
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-blue-500 to-cyan-500 text-sm font-bold text-white shadow-sm">
                 {(user?.name ?? "A").slice(0, 1).toUpperCase()}
@@ -182,7 +186,7 @@ export default function AdminLayout({ children }: PropsWithChildren) {
             </div>
 
             <Button variant="secondary" onClick={() => setLogoutConfirmOpen(true)} className="hidden xl:inline-flex">
-              Logout
+              {t("common.logout")}
             </Button>
           </div>
         </header>
@@ -202,10 +206,10 @@ export default function AdminLayout({ children }: PropsWithChildren) {
 
       <ConfirmDialog
         open={logoutConfirmOpen}
-        title="Logout dari dashboard admin?"
-        description="Sesi admin akan diakhiri dan Anda akan diarahkan ke halaman login."
-        confirmText="Ya, logout"
-        cancelText="Batal"
+        title={t("common.adminLogoutConfirmTitle")}
+        description={t("common.adminLogoutConfirmDesc")}
+        confirmText={t("common.yesLogout")}
+        cancelText={t("common.cancel")}
         onCancel={() => setLogoutConfirmOpen(false)}
         onConfirm={handleLogout}
       />

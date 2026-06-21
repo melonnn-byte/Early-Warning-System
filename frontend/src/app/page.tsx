@@ -9,6 +9,7 @@ import { EducationFAQ } from "@/components/landing/EducationFAQ";
 import { PublicRealtimeDashboardSection } from "@/components/landing/PublicRealtimeDashboardSection";
 import { AuthRedirectWrapper } from "@/components/AuthRedirectWrapper";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 // --- Tipe Data Database ---
 interface EmergencyContact {
@@ -63,26 +64,50 @@ const photoItems = [
   },
 ];
 
-// Helper untuk metadata kategori darurat
-const getEmergencyMeta = (category: string) => {
+// We will define this helper inside the component or pass t as a parameter
+const getEmergencyMeta = (category: string, t: any) => {
   switch (category) {
     case "BPBD":
-      return { scope: "Koordinasi kebencanaan wilayah", response: "Target respons 5-10 menit" };
+      return { scope: t("landing.emergencyContact.scopeBPBD"), response: t("landing.emergencyContact.responseBPBD") };
     case "SAR":
-      return { scope: "Evakuasi & penyelamatan", response: "Target respons 10-20 menit" };
+      return { scope: t("landing.emergencyContact.scopeSAR"), response: t("landing.emergencyContact.responseSAR") };
     case "AMBULANCE":
     case "HOSPITAL":
-      return { scope: "Bantuan medis darurat", response: "Target respons 10-15 menit" };
+      return { scope: t("landing.emergencyContact.scopeMedical"), response: t("landing.emergencyContact.responseMedical") };
     case "POLICE":
-      return { scope: "Keamanan dan evakuasi", response: "Target respons 10-15 menit" };
+      return { scope: t("landing.emergencyContact.scopePolice"), response: t("landing.emergencyContact.responsePolice") };
     default:
-      return { scope: "Respon darurat", response: "Secepat mungkin" };
+      return { scope: t("landing.emergencyContact.scopeDefault"), response: t("landing.emergencyContact.responseDefault") };
   }
 };
 
 export default function Home() {
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useLanguage();
+
+  const getStatusLegendItem = (title: string) => {
+    if (title.includes("Hijau")) return {
+      title: t("landing.statusLegend.greenTitle"),
+      description: t("landing.statusLegend.greenDesc"),
+      action: t("landing.statusLegend.greenAction"),
+    };
+    if (title.includes("Kuning")) return {
+      title: t("landing.statusLegend.yellowTitle"),
+      description: t("landing.statusLegend.yellowDesc"),
+      action: t("landing.statusLegend.yellowAction"),
+    };
+    if (title.includes("Oranye")) return {
+      title: t("landing.statusLegend.orangeTitle"),
+      description: t("landing.statusLegend.orangeDesc"),
+      action: t("landing.statusLegend.orangeAction"),
+    };
+    return {
+      title: t("landing.statusLegend.redTitle"),
+      description: t("landing.statusLegend.redDesc"),
+      action: t("landing.statusLegend.redAction"),
+    };
+  };
 
   // Mengambil data dari database saat halaman pertama kali dimuat
   useEffect(() => {
@@ -110,7 +135,7 @@ export default function Home() {
         <section id="home" className="relative isolate overflow-hidden text-white">
           <Image
             src={photoItems[0].src}
-            alt={photoItems[0].title}
+            alt={t("landing.hero.floodMonitoringCaption")}
             fill
             priority
             sizes="100vw"
@@ -123,14 +148,13 @@ export default function Home() {
             <div className="max-w-3xl text-center">
               <Reveal className="flex flex-col items-center">
                 <p className="mb-4 inline-block w-fit rounded-full border border-white/35 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-50 backdrop-blur-sm">
-                  Platform Early Warning System
+                  {t("landing.hero.badge")}
                 </p>
-                <h1 className="text-4xl font-bold leading-tight drop-shadow-sm md:text-6xl">
-                  Kelola Respons Banjir Lebih Cepat, Tepat, dan Terkoordinasi
+                <h1 className="text-4xl font-bold leading-tight drop-shadow-sm md:text-6xl text-balance">
+                  {t("landing.hero.title")}
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm text-blue-100 md:text-lg">
-                  Sistem peringatan dini berbasis sensor untuk membantu masyarakat memantau potensi banjir, memahami
-                  tingkat risiko, dan mengambil tindakan cepat saat kondisi darurat.
+                  {t("landing.hero.subtitle")}
                 </p>
               </Reveal>
 
@@ -139,13 +163,13 @@ export default function Home() {
                   href="/#realtime-dashboard"
                   className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-blue-700 shadow-lg shadow-blue-950/20 transition-colors hover:bg-blue-50"
                 >
-                  Lihat Dashboard Real-Time
+                  {t("landing.hero.viewDashboard")}
                 </Link>
                 <Link
                   href="/#emergency-action"
                   className="rounded-lg border border-white/50 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/15"
                 >
-                  Tindakan Darurat
+                  {t("landing.hero.emergencyAction")}
                 </Link>
               </Reveal>
             </div>
@@ -158,30 +182,33 @@ export default function Home() {
         <section id="status-legend" className="bg-blue-50">
           <div className="mx-auto w-full max-w-6xl px-6 py-16">
             <Reveal className="mb-10 max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Edukasi Visual</p>
-              <h2 className="mt-2 text-3xl font-bold text-blue-900">Status Indicators & Legend</h2>
+              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">{t("landing.statusLegend.eyebrow")}</p>
+              <h2 className="mt-2 text-3xl font-bold text-blue-900">{t("landing.statusLegend.title")}</h2>
               <p className="mt-3 text-sm text-blue-800/80">
-                Pahami kode warna status agar masyarakat dapat mengambil keputusan lebih cepat dan tepat.
+                {t("landing.statusLegend.description")}
               </p>
             </Reveal>
 
             <div className="grid gap-4 md:grid-cols-4">
-              {statusLegend.map((item, index) => (
-                <Reveal key={item.title} delayMs={90 * (index + 1)}>
-                  <Card className="h-full border-blue-100 bg-white/95">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`inline-flex h-3 w-16 rounded-full ${item.color}`} />
-                      <span className="text-lg" aria-hidden="true">{item.icon}</span>
-                    </div>
-                    <h3 className="mt-4 text-lg font-semibold text-slate-900">{item.title}</h3>
-                    <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-                    <div className="mt-3 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
-                      <p className="font-semibold">Tindakan cepat</p>
-                      <p className="mt-1 leading-relaxed">{item.action}</p>
-                    </div>
-                  </Card>
-                </Reveal>
-              ))}
+              {statusLegend.map((item, index) => {
+                const trans = getStatusLegendItem(item.title);
+                return (
+                  <Reveal key={item.title} delayMs={90 * (index + 1)}>
+                    <Card className="h-full border-blue-100 bg-white/95">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`inline-flex h-3 w-16 rounded-full ${item.color}`} />
+                        <span className="text-lg" aria-hidden="true">{item.icon}</span>
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-slate-900">{trans.title}</h3>
+                      <p className="mt-2 text-sm text-slate-600">{trans.description}</p>
+                      <div className="mt-3 rounded-lg bg-blue-50 p-3 text-xs text-blue-900">
+                        <p className="font-semibold">{t("landing.statusLegend.quickAction")}</p>
+                        <p className="mt-1 leading-relaxed">{trans.action}</p>
+                      </div>
+                    </Card>
+                  </Reveal>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -190,21 +217,21 @@ export default function Home() {
         <section id="emergency-action" className="bg-white">
           <div className="mx-auto w-full max-w-6xl px-6 py-16">
             <Reveal className="mb-10 max-w-3xl">
-              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Tindakan Cepat</p>
-              <h2 className="mt-2 text-3xl font-bold text-slate-900">Kontak Darurat Resmi</h2>
+              <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">{t("landing.emergencyContact.eyebrow")}</p>
+              <h2 className="mt-2 text-3xl font-bold text-slate-900">{t("landing.emergencyContact.title")}</h2>
               <p className="mt-3 text-sm text-slate-600">
-                Tombol panggilan darurat terintegrasi langsung dengan database terkini otoritas setempat.
+                {t("landing.emergencyContact.description")}
               </p>
             </Reveal>
 
             {isLoading ? (
               <div className="flex items-center justify-center py-10">
-                <span className="text-sm font-medium text-slate-500">Memuat kontak darurat...</span>
+                <span className="text-sm font-medium text-slate-500">{t("landing.emergencyContact.loading")}</span>
               </div>
             ) : contacts.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-3">
                 {contacts.map((contact, index) => {
-                  const meta = getEmergencyMeta(contact.category);
+                  const meta = getEmergencyMeta(contact.category, t);
                   return (
                     <Reveal key={contact.id} delayMs={80 * (index + 1)}>
                       <Card className="border-slate-200">
@@ -214,12 +241,12 @@ export default function Home() {
                             {contact.category}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-slate-600">Nomor prioritas tanggap darurat</p>
+                        <p className="mt-1 text-sm text-slate-600">{t("landing.emergencyContact.priorityTitle")}</p>
 
                         <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
-                          <p className="font-semibold text-slate-900">Fokus layanan</p>
+                          <p className="font-semibold text-slate-900">{t("landing.emergencyContact.serviceFocus")}</p>
                           <p className="mt-1">{meta.scope}</p>
-                          <p className="mt-2 font-semibold text-slate-900">Estimasi respons</p>
+                          <p className="mt-2 font-semibold text-slate-900">{t("landing.emergencyContact.estimatedResponse")}</p>
                           <p className="mt-1">{meta.response}</p>
                         </div>
 
@@ -227,7 +254,7 @@ export default function Home() {
                           href={`tel:${contact.phone}`}
                           className="mt-4 flex w-full items-center justify-center rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
                         >
-                          Hubungi {contact.phone}
+                          {t("landing.emergencyContact.callButton", { phone: contact.phone })}
                         </a>
                       </Card>
                     </Reveal>
@@ -236,7 +263,7 @@ export default function Home() {
               </div>
             ) : (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
-                Tidak ada data kontak darurat aktif di database saat ini.
+                {t("landing.emergencyContact.empty")}
               </div>
             )}
           </div>
