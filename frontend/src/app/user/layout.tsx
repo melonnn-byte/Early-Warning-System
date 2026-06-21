@@ -3,14 +3,16 @@
 import type { PropsWithChildren } from "react";
 import { UserBottomNavbar } from "@/components/layout/UserBottomNavbar";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function UserLayout({ children }: PropsWithChildren) {
+  const { t } = useLanguage();
   const { loading } = useAuth();
 
   if (loading) {
     return (
       <main className="mx-auto w-full max-w-2xl px-6 py-12 text-center text-sm text-slate-500">
-        Memuat sesi pengguna...
+        {t("common.loadingUserSession")}
       </main>
     );
   }

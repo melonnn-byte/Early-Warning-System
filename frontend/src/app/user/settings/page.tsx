@@ -6,8 +6,10 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function UserSettingsPage() {
+  const { t, language } = useLanguage();
   const router = useRouter();
   const { user, isAuthenticated, updateProfile } = useAuth();
 
@@ -60,9 +62,9 @@ export default function UserSettingsPage() {
         });
       }
 
-      setMessage({ type: "success", text: "Pengaturan berhasil diperbarui!" });
+      setMessage({ type: "success", text: t("userSettings.saveSuccess") });
     } catch {
-      setMessage({ type: "error", text: "Gagal memperbarui pengaturan." });
+      setMessage({ type: "error", text: t("userSettings.saveFailed") });
     } finally {
       setIsSubmitting(false);
     }
@@ -75,7 +77,7 @@ export default function UserSettingsPage() {
       setNotificationFlood(user.notificationFlood ?? true);
       setNotificationStatus(user.notificationStatus ?? true);
       setNotificationEmail(user.notificationEmail ?? false);
-      setMessage({ type: "success", text: "Konfigurasi di-reset ke nilai tersimpan." });
+      setMessage({ type: "success", text: t("userSettings.resetSuccess") });
     }
     setResetConfirmOpen(false);
   };
@@ -93,10 +95,10 @@ export default function UserSettingsPage() {
               onClick={() => router.back()}
               className="mb-3 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
             >
-              &larr; Kembali
+              &larr; {t("userSettings.back")}
             </button>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pengaturan Notifikasi</h1>
-            <p className="mt-1 text-slate-500 text-sm">Kelola saluran dan preferensi pengiriman peringatan EWS Anda.</p>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{t("userSettings.title")}</h1>
+            <p className="mt-1 text-slate-500 text-sm">{t("userSettings.subtitle")}</p>
           </div>
           <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -113,33 +115,33 @@ export default function UserSettingsPage() {
             {/* Bagian Hubungan & Saluran Kontak */}
             <section className="space-y-5">
               <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-lg font-bold text-slate-900">Saluran & Kontak</h2>
-                <p className="text-xs text-slate-500">Nomor telepon terdaftar digunakan untuk penyebaran SMS/WhatsApp darurat.</p>
+                <h2 className="text-lg font-bold text-slate-900">{t("userSettings.contactHeader")}</h2>
+                <p className="text-xs text-slate-500">{t("userSettings.contactDesc")}</p>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-slate-700">Nomor WhatsApp</label>
+                  <label className="text-sm font-semibold text-slate-700">{t("userSettings.fieldPhone")}</label>
                   <input
                     type="text"
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
-                    placeholder="Contoh: 62812345678"
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder={t("userSettings.fieldPhonePlaceholder")}
+                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none bg-white text-slate-900 transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
-                  <p className="text-[11px] text-slate-400">Gunakan format kode negara (misal: 628...).</p>
+                  <p className="text-[11px] text-slate-400">{t("userSettings.fieldPhoneDesc")}</p>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-slate-700">Instansi / Organisasi</label>
+                  <label className="text-sm font-semibold text-slate-700">{t("userSettings.fieldInstitution")}</label>
                   <input
                     type="text"
                     value={institution}
                     onChange={(e) => setInstitution(e.target.value)}
-                    placeholder="Contoh: BPBD Kota / Relawan"
-                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder={t("userSettings.fieldInstitutionPlaceholder")}
+                    className="rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none bg-white text-slate-900 transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
-                  <p className="text-[11px] text-slate-400">Hubungan instansi mempercepat koordinasi tanggap bencana.</p>
+                  <p className="text-[11px] text-slate-400">{t("userSettings.fieldInstitutionDesc")}</p>
                 </div>
               </div>
             </section>
@@ -147,17 +149,17 @@ export default function UserSettingsPage() {
             {/* Bagian Preferensi Peringatan */}
             <section className="space-y-5">
               <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-lg font-bold text-slate-900">Preferensi Notifikasi</h2>
-                <p className="text-xs text-slate-500">Tentukan jenis peringatan EWS mana yang ingin Anda terima.</p>
+                <h2 className="text-lg font-bold text-slate-900">{t("userSettings.preferencesHeader")}</h2>
+                <p className="text-xs text-slate-500">{t("userSettings.preferencesDesc")}</p>
               </div>
 
               <div className="divide-y divide-slate-100">
                 {/* Flood Alert Toggle */}
                 <div className="flex items-center justify-between py-4">
                   <div className="max-w-[80%] pr-4">
-                    <p className="text-sm font-bold text-slate-800">Notifikasi Risiko Banjir</p>
+                    <p className="text-sm font-bold text-slate-800">{t("userSettings.prefFloodTitle")}</p>
                     <p className="text-xs text-slate-500">
-                      Terima notifikasi instan ketika sensor air memasuki status Kuning, Oren, atau Merah.
+                      {t("userSettings.prefFloodDesc")}
                     </p>
                   </div>
                   <button
@@ -179,9 +181,9 @@ export default function UserSettingsPage() {
                 {/* Device Status Toggle */}
                 <div className="flex items-center justify-between py-4">
                   <div className="max-w-[80%] pr-4">
-                    <p className="text-sm font-bold text-slate-800">Status & Koneksi Sensor</p>
+                    <p className="text-sm font-bold text-slate-800">{t("userSettings.prefStatusTitle")}</p>
                     <p className="text-xs text-slate-500">
-                      Terima pembaruan ketika status konektivitas sensor berubah (Online/Offline/Maintenance).
+                      {t("userSettings.prefStatusDesc")}
                     </p>
                   </div>
                   <button
@@ -203,9 +205,9 @@ export default function UserSettingsPage() {
                 {/* Email Alert Toggle */}
                 <div className="flex items-center justify-between py-4">
                   <div className="max-w-[80%] pr-4">
-                    <p className="text-sm font-bold text-slate-800">Kirim via Email</p>
+                    <p className="text-sm font-bold text-slate-800">{t("userSettings.prefEmailTitle")}</p>
                     <p className="text-xs text-slate-500">
-                      Kirim salinan digital laporan dan peringatan langsung ke alamat email terdaftar Anda.
+                      {t("userSettings.prefEmailDesc")}
                     </p>
                   </div>
                   <button
@@ -226,7 +228,6 @@ export default function UserSettingsPage() {
               </div>
             </section>
 
-            {/* Notification message */}
             {message.text && (
               <div
                 className={`rounded-xl p-4 text-sm font-medium ${
@@ -244,7 +245,7 @@ export default function UserSettingsPage() {
                 onClick={() => setResetConfirmOpen(true)}
                 className="rounded-xl px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
               >
-                Reset Default
+                {t("userSettings.resetBtn")}
               </button>
               
               <button
@@ -252,7 +253,7 @@ export default function UserSettingsPage() {
                 disabled={isSubmitting}
                 className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {isSubmitting ? "Menyimpan..." : "Simpan Pengaturan"}
+                {isSubmitting ? t("userSettings.saving") : t("userSettings.saveBtn")}
               </button>
             </div>
 
@@ -261,10 +262,10 @@ export default function UserSettingsPage() {
 
         <ConfirmDialog
           open={resetConfirmOpen}
-          title="Reset ke pengaturan awal?"
-          description="Seluruh perubahan formulir yang belum disimpan akan dikembalikan ke konfigurasi awal akun Anda."
-          confirmText="Ya, reset"
-          cancelText="Batal"
+          title={t("userSettings.confirmTitle")}
+          description={t("userSettings.confirmDesc")}
+          confirmText={t("userSettings.confirmYes")}
+          cancelText={t("userSettings.confirmCancel")}
           onCancel={() => setResetConfirmOpen(false)}
           onConfirm={handleReset}
         />

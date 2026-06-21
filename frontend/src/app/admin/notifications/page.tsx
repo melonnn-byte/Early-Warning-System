@@ -1,11 +1,11 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { formatTimestamp } from "@/lib/utils";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 type NotificationConditionLevel = "Aman" | "Waspada" | "Siaga" | "Bahaya";
 
@@ -38,6 +38,8 @@ function isNotificationRead(sentAt: string, notificationReadAt: string | null, i
 
 export default function AdminNotificationsPage() {
   const router = useRouter();
+  const { t, language } = useLanguage();
+
   const [items, setItems] = useState<Array<{
     id: string;
     subject: string;
@@ -89,7 +91,7 @@ export default function AdminNotificationsPage() {
               subject: row.title,
               message: row.message,
               level: resolvedLevel,
-              sender: row.user?.name ?? "Sistem EWS",
+              sender: row.user?.name ?? t("adminNotifications.senderDefault"),
               channel: row.channels?.[0] ?? "push",
               receivedAt: row.sentAt,
               isRead: isNotificationRead(row.sentAt, readAt, row.id, readIds),
@@ -97,12 +99,12 @@ export default function AdminNotificationsPage() {
           }),
         );
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Gagal memuat notifikasi.");
+        setErrorMessage(error instanceof Error ? error.message : t("adminNotifications.loadFailed"));
       }
     };
 
     void load();
-  }, []);
+  }, [t]);
 
   const handleDelete = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
@@ -120,7 +122,7 @@ export default function AdminNotificationsPage() {
       setOpenMenu(null);
       window.dispatchEvent(new CustomEvent("adminNotificationsUpdated"));
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal menandai notifikasi sebagai dibaca.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminNotifications.markReadFailed"));
     }
   };
 
@@ -133,7 +135,7 @@ export default function AdminNotificationsPage() {
       );
       window.dispatchEvent(new CustomEvent("adminNotificationsUpdated"));
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal menandai notifikasi sebagai dibaca.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminNotifications.markReadFailed"));
     }
   };
 
@@ -152,6 +154,13 @@ export default function AdminNotificationsPage() {
     return levels.size;
   }, [items]);
 
+  const getTranslatedLevel = (lvl: NotificationConditionLevel) => {
+    if (lvl === "Bahaya") return t("adminNotifications.levels.danger");
+    if (lvl === "Siaga") return t("adminNotifications.levels.alert");
+    if (lvl === "Waspada") return t("adminNotifications.levels.warning");
+    return t("adminNotifications.levels.safe");
+  };
+
   return (
     <main className="space-y-6 bg-slate-50/40 pb-8">
       <div className="relative overflow-hidden rounded-3xl border border-blue-100/80 bg-linear-to-br from-white via-sky-50/60 to-blue-50/85 p-6 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.35)] md:p-8">
@@ -162,12 +171,12 @@ export default function AdminNotificationsPage() {
           <div className="max-w-3xl space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700 shadow-sm backdrop-blur">
               <span className="size-2 rounded-full bg-blue-500" />
-              Flood Guard · Admin Inbox
+              {t("adminNotifications.inboxLabel")}
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">Notifikasi & Inbox Admin</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{t("adminNotifications.title")}</h1>
               <p className="max-w-2xl text-sm leading-6 text-slate-600 md:text-[15px]">
-                Ringkasan kondisi peringatan dari Aman hingga Bahaya, lengkap dengan pesan inbox lintas kanal komunikasi.
+                {t("adminNotifications.subtitle")}
               </p>
             </div>
           </div>
@@ -178,9 +187,9 @@ export default function AdminNotificationsPage() {
         <Card className="border border-slate-100 bg-white/95 p-5 shadow-sm shadow-slate-200/60 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-500">Kondisi Peringatan</p>
+              <p className="text-sm font-medium text-slate-500">{t("adminNotifications.statsLevel")}</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{conditionCount}</p>
-              <p className="mt-1 text-xs text-slate-500">Aman, Waspada, Bahaya</p>
+              <p className="mt-1 text-xs text-slate-500">{t("adminNotifications.statsLevelDesc")}</p>
             </div>
             <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -193,9 +202,9 @@ export default function AdminNotificationsPage() {
         <Card className="border border-slate-100 bg-white/95 p-5 shadow-sm shadow-slate-200/60 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-500">Total Pesan Inbox</p>
+              <p className="text-sm font-medium text-slate-500">{t("adminNotifications.statsTotal")}</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-cyan-700">{items.length}</p>
-              <p className="mt-1 text-xs text-slate-500">Push, WhatsApp, Email, SMS</p>
+              <p className="mt-1 text-xs text-slate-500">{t("adminNotifications.statsTotalDesc")}</p>
             </div>
             <div className="flex size-11 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -208,9 +217,9 @@ export default function AdminNotificationsPage() {
         <Card className="border border-slate-100 bg-white/95 p-5 shadow-sm shadow-slate-200/60 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-slate-500">Belum Dibaca</p>
+              <p className="text-sm font-medium text-slate-500">{t("adminNotifications.statsUnread")}</p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-600">{unreadCount}</p>
-              <p className="mt-1 text-xs text-slate-500">Pesan butuh atensi admin</p>
+              <p className="mt-1 text-xs text-slate-500">{t("adminNotifications.statsUnreadDesc")}</p>
             </div>
             <div className="flex size-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
               <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
@@ -224,141 +233,141 @@ export default function AdminNotificationsPage() {
       </div>
 
       <Card className="border border-slate-100 bg-white/96 p-0 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.28)] backdrop-blur-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Inbox Notifikasi</h2>
-              <p className="mt-1 text-sm text-slate-500">Pesan masuk berdasarkan beragam kondisi peringatan.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-              {unreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMarkAllRead}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
-                >
-                  <svg viewBox="0 0 24 24" className="size-3.5 text-slate-500" fill="none" aria-hidden="true">
-                    <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Tandai Semua Dibaca
-                </button>
-              )}
-              <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700">
-                <span className="size-2 rounded-full bg-rose-500" />
-                {dangerCount} pesan level Bahaya
-              </div>
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">{t("adminNotifications.inboxTitle")}</h2>
+            <p className="mt-1 text-sm text-slate-500">{t("adminNotifications.inboxSubtitle")}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <svg viewBox="0 0 24 24" className="size-3.5 text-slate-500" fill="none" aria-hidden="true">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {t("adminNotifications.markAllRead")}
+              </button>
+            )}
+            <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700">
+              <span className="size-2 rounded-full bg-rose-500" />
+              {t("adminNotifications.dangerAlertsCount").replace("{count}", dangerCount.toString())}
             </div>
           </div>
+        </div>
 
-          <div className="divide-y divide-slate-100">
-                {items.map((item) => (
-                  <article
-                    key={item.id}
-                    role="button"
-                    onClick={() => {
-                      try {
-                        handleMarkAsRead(item.id);
-                        router.push(`/admin/notifications/${item.id}`);
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                    className={`group relative px-6 py-4 transition-all duration-150 cursor-pointer ${
-                      item.isRead ? "bg-white hover:bg-slate-50/60" : "bg-blue-50/30 hover:bg-blue-50/50"
-                    }`}
-                  >
-                <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${levelDotClass[item.level]}`} />
-                        <h3 className="text-sm font-semibold text-slate-900">{item.subject}</h3>
-                        {!item.isRead && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
-                            <span className="size-1.5 animate-pulse rounded-full bg-blue-600" />
-                            Baru
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-sm text-slate-600">{item.message}</p>
-                    </div>
-
-                    <div className="relative shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenu(openMenu === item.id ? null : item.id);
-                        }}
-                        className="rounded-lg p-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
-                        aria-label="Menu aksi notifikasi"
-                      >
-                        <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden="true">
-                          <circle cx="12" cy="5" r="1.5" />
-                          <circle cx="12" cy="12" r="1.5" />
-                          <circle cx="12" cy="19" r="1.5" />
-                        </svg>
-                      </button>
-
-                      {openMenu === item.id && (
-                        <div className="absolute right-0 top-full mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_16px_40px_-20px_rgba(15,23,42,0.45)]" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleMarkAsRead(item.id);
-                            }}
-                            disabled={item.isRead}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
-                          >
-                            <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
-                              <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            Tandai telah dibaca
-                          </button>
-                          <div className="border-t border-slate-100" />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirm({ id: item.id, subject: item.subject });
-                            }}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
-                          >
-                            <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
-                              <path d="M4 7h16M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7m-7 0v11a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V7" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                              <path d="M10 11v4M14 11v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                            </svg>
-                            Hapus pesan
-                          </button>
-                        </div>
+        <div className="divide-y divide-slate-100">
+          {items.map((item) => (
+            <article
+              key={item.id}
+              role="button"
+              onClick={() => {
+                try {
+                  handleMarkAsRead(item.id);
+                  router.push(`/admin/notifications/${item.id}`);
+                } catch {
+                  // ignore
+                }
+              }}
+              className={`group relative px-6 py-4 transition-all duration-150 cursor-pointer ${
+                item.isRead ? "bg-white hover:bg-slate-50/60" : "bg-blue-50/30 hover:bg-blue-50/50"
+              }`}
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${levelDotClass[item.level]}`} />
+                      <h3 className="text-sm font-semibold text-slate-900">{item.subject}</h3>
+                      {!item.isRead && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                          <span className="size-1.5 animate-pulse rounded-full bg-blue-600" />
+                          {t("adminNotifications.newBadge")}
+                        </span>
                       )}
                     </div>
+                    <p className="mt-2 line-clamp-2 text-sm text-slate-600">{item.message}</p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ring-1 ring-inset ${
-                        item.level === "Bahaya"
-                          ? "bg-rose-50 text-rose-700 ring-rose-100"
-                          : item.level === "Siaga"
-                            ? "bg-orange-50 text-orange-700 ring-orange-100"
-                            : item.level === "Waspada"
-                              ? "bg-amber-50 text-amber-700 ring-amber-100"
-                              : "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                      }`}
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenu(openMenu === item.id ? null : item.id);
+                      }}
+                      className="rounded-lg p-2 text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-700"
+                      aria-label="Menu aksi notifikasi"
                     >
-                      {item.level}
-                    </span>
-                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-600">{item.channel}</span>
-                    <span className="text-slate-500">{item.sender}</span>
-                    <span className="text-slate-400">•</span>
-                    <span className="text-slate-400">{formatTimestamp(item.receivedAt)}</span>
+                      <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden="true">
+                        <circle cx="12" cy="5" r="1.5" />
+                        <circle cx="12" cy="12" r="1.5" />
+                        <circle cx="12" cy="19" r="1.5" />
+                      </svg>
+                    </button>
+
+                    {openMenu === item.id && (
+                      <div className="absolute right-0 top-full mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_16px_40px_-20px_rgba(15,23,42,0.45)]" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleMarkAsRead(item.id);
+                          }}
+                          disabled={item.isRead}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+                        >
+                          <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
+                            <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          {t("adminNotifications.markAsReadMenu")}
+                        </button>
+                        <div className="border-t border-slate-100" />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm({ id: item.id, subject: item.subject });
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                        >
+                          <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden="true">
+                            <path d="M4 7h16M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7m-7 0v11a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V7" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                            <path d="M10 11v4M14 11v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                          </svg>
+                          {t("adminNotifications.deleteMsgMenu")}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        </Card>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ring-1 ring-inset ${
+                      item.level === "Bahaya"
+                        ? "bg-rose-50 text-rose-700 ring-rose-100"
+                        : item.level === "Siaga"
+                          ? "bg-orange-50 text-orange-700 ring-orange-100"
+                          : item.level === "Waspada"
+                            ? "bg-amber-50 text-amber-700 ring-amber-100"
+                            : "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                    }`}
+                  >
+                    {getTranslatedLevel(item.level)}
+                  </span>
+                  <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-600">{item.channel}</span>
+                  <span className="text-slate-500">{item.sender}</span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-slate-400">{formatTimestamp(item.receivedAt, language)}</span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Card>
 
       {errorMessage && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
@@ -374,14 +383,14 @@ export default function AdminNotificationsPage() {
               <div className="border-b border-slate-100 bg-rose-50/70 px-5 py-4">
                 <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700">
                   <span className="size-2 rounded-full bg-rose-500" />
-                  Konfirmasi Aksi
+                  {t("adminNotifications.confirmTitle")}
                 </div>
               </div>
 
               <div className="px-5 py-5">
-                <h3 className="text-lg font-semibold tracking-tight text-slate-900">Hapus Notifikasi?</h3>
+                <h3 className="text-lg font-semibold tracking-tight text-slate-900">{t("adminNotifications.confirmTitle")}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  Tindakan ini akan menghapus notifikasi &quot;{deleteConfirm.subject}&quot; dari inbox Anda. Perubahan ini tidak dapat dibatalkan.
+                  {t("adminNotifications.confirmDesc").replace("{subject}", deleteConfirm.subject)}
                 </p>
 
                 <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -390,14 +399,14 @@ export default function AdminNotificationsPage() {
                     onClick={() => setDeleteConfirm(null)}
                     className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Batal
+                    {t("adminNotifications.confirmCancel")}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(deleteConfirm.id)}
                     className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
                   >
-                    Hapus
+                    {t("adminNotifications.confirmYes")}
                   </button>
                 </div>
               </div>

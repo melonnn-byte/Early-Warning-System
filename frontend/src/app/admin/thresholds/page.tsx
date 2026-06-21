@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import api from "@/lib/api";
 import { useThresholdIotData } from "@/hooks/useThresholdIotData";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface ThresholdForm {
   normalMax: number;
@@ -19,6 +20,7 @@ interface ThresholdForm {
 }
 
 export default function AdminThresholdsPage() {
+  const { t, language } = useLanguage();
   const [sensorCount, setSensorCount] = useState(0);
   const [autoBroadcastCount, setAutoBroadcastCount] = useState(0);
   const [saved, setSaved] = useState(false);
@@ -85,7 +87,7 @@ export default function AdminThresholdsPage() {
 
       setAutoBroadcastCount(0);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal memuat konfigurasi ambang batas.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminThresholds.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export default function AdminThresholdsPage() {
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -133,10 +135,10 @@ export default function AdminThresholdsPage() {
 
       setSaved(true);
       setAutoBroadcastCount(form.autoBroadcast ? sensorCount : 0);
-      setToastMessage("Perubahan ambang batas berhasil disimpan.");
+      setToastMessage(t("adminThresholds.saveSuccess"));
       setConfirmSaveOpen(false);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Gagal menyimpan ambang batas.");
+      setErrorMessage(error instanceof Error ? error.message : t("adminThresholds.saveFailed"));
     }
   };
 
@@ -145,14 +147,13 @@ export default function AdminThresholdsPage() {
     openSaveConfirmation();
   };
 
-
   return (
     <main className="space-y-6 bg-slate-50/60">
       <section className="flex flex-col gap-4 border-b border-slate-200/70 pb-5 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
             <span className="inline-block h-2 w-2 rounded-full bg-cyan-500" />
-            Threshold Settings
+            {t("adminThresholds.tagLabel")}
           </div>
           <div className="flex items-start gap-3">
             <div className="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm">
@@ -166,9 +167,9 @@ export default function AdminThresholdsPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Ambang Batas</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t("adminThresholds.title")}</h1>
               <p className="mt-1 text-sm text-slate-500">
-                Kelola level ketinggian air dan curah hujan dengan tampilan yang lebih ringkas, modern, dan mudah dipindai.
+                {t("adminThresholds.subtitle")}
               </p>
             </div>
           </div>
@@ -177,38 +178,55 @@ export default function AdminThresholdsPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Sensor Terkonfigurasi</p>
+          <p className="text-sm font-medium text-slate-500">{t("adminThresholds.statsConfigured")}</p>
           <div className="mt-3 flex items-end gap-3">
             <p className="text-3xl font-bold tracking-tight text-slate-800">{sensorCount}</p>
-            <span className="mb-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Aktif</span>
+            <span className="mb-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              {t("adminThresholds.statsActive")}
+            </span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">Sudah memiliki rule threshold</p>
+          <p className="mt-2 text-xs text-slate-500">{t("adminThresholds.statsConfiguredDesc")}</p>
         </Card>
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Auto Broadcast Aktif</p>
+          <p className="text-sm font-medium text-slate-500">{t("adminThresholds.statsAutoBroadcast")}</p>
           <div className="mt-3 flex items-end gap-3">
             <p className="text-3xl font-bold tracking-tight text-slate-800">{autoBroadcastCount}</p>
-            <span className="mb-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Siaga</span>
+            <span className="mb-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+              {t("adminThresholds.statsAlert")}
+            </span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">Sensor siap kirim peringatan otomatis</p>
+          <p className="mt-2 text-xs text-slate-500">{t("adminThresholds.statsAutoBroadcastDesc")}</p>
         </Card>
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Mode Konfigurasi</p>
+          <p className="text-sm font-medium text-slate-500">{t("adminThresholds.statsMode")}</p>
           <div className="mt-3 flex items-end gap-3">
-            <p className="truncate text-3xl font-bold tracking-tight text-slate-800">Global</p>
+            <p className="truncate text-3xl font-bold tracking-tight text-slate-800">
+              {t("adminThresholds.statsGlobal")}
+            </p>
             <span className="mb-1 rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">EWS</span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">Berlaku untuk seluruh sensor</p>
+          <p className="mt-2 text-xs text-slate-500">{t("adminThresholds.statsModeDesc")}</p>
         </Card>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Memuat konfigurasi ambang batas...</p>}
+      {loading && (
+        <p className="text-sm text-slate-500">
+          {language === "en" ? "Loading threshold configuration..." : "Memuat konfigurasi ambang batas..."}
+        </p>
+      )}
       {errorMessage && <p className="text-sm font-medium text-rose-600">{errorMessage}</p>}
-      {iotError && <p className="text-sm font-medium text-amber-600">Data IoT: {iotError}</p>}
+      {iotError && (
+        <p className="text-sm font-medium text-amber-600">
+          {language === "en" ? "IoT Data: " : "Data IoT: "}
+          {iotError}
+        </p>
+      )}
 
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 max-w-sm rounded-2xl border border-emerald-200 bg-white px-4 py-3 shadow-xl shadow-slate-900/10">
-          <p className="text-sm font-semibold text-emerald-700">Berhasil</p>
+          <p className="text-sm font-semibold text-emerald-700">
+            {language === "en" ? "Success" : "Berhasil"}
+          </p>
           <p className="mt-1 text-sm text-slate-600">{toastMessage}</p>
         </div>
       )}
@@ -224,22 +242,31 @@ export default function AdminThresholdsPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Form Pengaturan Ambang Batas</h2>
-              <p className="mt-1 text-sm text-slate-500">Pastikan konfigurasi level air dan hujan sesuai kondisi lapangan tiap sensor.</p>
+              <h2 className="text-lg font-semibold text-slate-900">{t("adminThresholds.formTitle")}</h2>
+              <p className="mt-1 text-sm text-slate-500">{t("adminThresholds.formSubtitle")}</p>
             </div>
           </div>
 
           <form id="threshold-settings-form" onSubmit={handleSubmit} className="space-y-8">
             <p className="text-sm leading-6 text-slate-600">
-              Pengaturan ini disimpan di database dan diterapkan sebagai threshold global. {iotLastUpdated ? `Pembaruan IoT terakhir: ${new Date(iotLastUpdated).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}.` : ""}
+              {t("adminThresholds.formDesc")}{" "}
+              {iotLastUpdated
+                ? t("adminThresholds.iotLastUpdated").replace(
+                    "{time}",
+                    new Date(iotLastUpdated).toLocaleTimeString(language === "en" ? "en-US" : "id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  )
+                : ""}
             </p>
 
             <section className="space-y-5">
               <div className="border-b border-slate-100 pb-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900">Konfigurasi Ketinggian Air</h3>
-                    <p className="mt-1 text-xs text-slate-500">Gunakan indikator warna untuk membedakan tingkat risiko pada input.</p>
+                    <h3 className="text-base font-semibold text-slate-900">{t("adminThresholds.waterLevelHeader")}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{t("adminThresholds.waterLevelHeaderDesc")}</p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">cm</span>
                 </div>
@@ -250,9 +277,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
                       <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      Normal
+                      {t("adminThresholds.levels.normal")}
                     </span>
-                    Level Normal Maks
+                    {t("adminThresholds.normalMaxLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -271,9 +298,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      Waspada
+                      {t("adminThresholds.levels.waspada")}
                     </span>
-                    Level Waspada Min
+                    {t("adminThresholds.waspadaMinLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -292,9 +319,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      Waspada
+                      {t("adminThresholds.levels.waspada")}
                     </span>
-                    Level Waspada Maks
+                    {t("adminThresholds.waspadaMaxLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -313,9 +340,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">
                       <span className="h-2 w-2 rounded-full bg-orange-500" />
-                      Siaga
+                      {t("adminThresholds.levels.siaga")}
                     </span>
-                    Level Siaga Min
+                    {t("adminThresholds.siagaMinLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -334,9 +361,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700">
                       <span className="h-2 w-2 rounded-full bg-orange-500" />
-                      Siaga
+                      {t("adminThresholds.levels.siaga")}
                     </span>
-                    Level Siaga Maks
+                    {t("adminThresholds.siagaMaxLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -355,9 +382,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">
                       <span className="h-2 w-2 rounded-full bg-rose-500" />
-                      Bahaya
+                      {t("adminThresholds.levels.bahaya")}
                     </span>
-                    Level Bahaya Min
+                    {t("adminThresholds.bahayaMinLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -378,8 +405,8 @@ export default function AdminThresholdsPage() {
               <div className="border-b border-slate-100 pb-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900">Konfigurasi Curah Hujan</h3>
-                    <p className="mt-1 text-xs text-slate-500">Membantu pemetaan intensitas hujan untuk trigger alert otomatis.</p>
+                    <h3 className="text-base font-semibold text-slate-900">{t("adminThresholds.rainfallHeader")}</h3>
+                    <p className="mt-1 text-xs text-slate-500">{t("adminThresholds.rainfallHeaderDesc")}</p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">mm/jam</span>
                 </div>
@@ -390,9 +417,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
                       <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      Ringan
+                      {t("adminThresholds.levels.ringan")}
                     </span>
-                    Curah Hujan Maks
+                    {t("adminThresholds.ringanMaxLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -411,9 +438,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
-                      Sedang
+                      {t("adminThresholds.levels.sedang")}
                     </span>
-                    Curah Hujan Maks
+                    {t("adminThresholds.sedangMaxLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -432,9 +459,9 @@ export default function AdminThresholdsPage() {
                   <span className="mb-1.5 flex items-center gap-2 font-medium text-slate-700">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">
                       <span className="h-2 w-2 rounded-full bg-rose-500" />
-                      Lebat
+                      {t("adminThresholds.levels.lebat")}
                     </span>
-                    Curah Hujan Min
+                    {t("adminThresholds.lebatMinLabel")}
                   </span>
                   <div className="relative rounded-lg border border-slate-300 bg-white shadow-sm transition focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200">
                     <input
@@ -462,8 +489,8 @@ export default function AdminThresholdsPage() {
                 </div>
                 <div className="flex-1 space-y-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-900">Auto-Broadcast saat Level Bahaya</h3>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">Pengaturan kritikal untuk mengaktifkan penyebaran otomatis ketika threshold bahaya tercapai.</p>
+                    <h3 className="text-sm font-semibold text-slate-900">{t("adminThresholds.autoBroadcastHeader")}</h3>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">{t("adminThresholds.autoBroadcastSub")}</p>
                   </div>
 
                   <button
@@ -473,8 +500,8 @@ export default function AdminThresholdsPage() {
                     className={`inline-flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left shadow-sm transition-all sm:w-auto sm:min-w-[320px] ${form.autoBroadcast ? "border-cyan-200 bg-cyan-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
                   >
                     <span>
-                      <span className="block text-sm font-medium text-slate-800">Aktifkan Auto-Broadcast</span>
-                      <span className="block text-xs text-slate-500">Trigger notifikasi otomatis untuk status bahaya</span>
+                      <span className="block text-sm font-medium text-slate-800">{t("adminThresholds.autoBroadcastTitle")}</span>
+                      <span className="block text-xs text-slate-500">{t("adminThresholds.autoBroadcastDesc")}</span>
                     </span>
                     <span className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${form.autoBroadcast ? "bg-cyan-600" : "bg-slate-300"}`}>
                       <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${form.autoBroadcast ? "translate-x-6" : "translate-x-1"}`} />
@@ -494,9 +521,9 @@ export default function AdminThresholdsPage() {
                   <path d="M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M12 5v14" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Simpan Konfigurasi
+                {t("adminThresholds.saveBtn")}
               </button>
-              {saved && <p className="text-sm text-emerald-600">Perubahan ambang batas berhasil disimpan.</p>}
+              {saved && <p className="text-sm text-emerald-600">{t("adminThresholds.saveSuccess")}</p>}
             </div>
           </form>
         </Card>
@@ -512,9 +539,9 @@ export default function AdminThresholdsPage() {
                 <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 9v4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="17" r="1"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-slate-900">Konfirmasi Perubahan Ambang Batas</h3>
+                <h3 className="text-lg font-semibold text-slate-900">{t("adminThresholds.confirmTitle")}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Perubahan pada threshold akan langsung berdampak pada logika notifikasi otomatis dan status bahaya di seluruh sistem. Pastikan angka yang dimasukkan sudah sesuai dengan standar operasional.
+                  {t("adminThresholds.confirmDesc")}
                 </p>
               </div>
             </div>
@@ -525,7 +552,7 @@ export default function AdminThresholdsPage() {
                 onClick={() => setConfirmSaveOpen(false)}
                 className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
-                Batal
+                {t("adminThresholds.confirmCancel")}
               </button>
               <button
                 type="button"
@@ -533,7 +560,7 @@ export default function AdminThresholdsPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-900/15 transition hover:bg-blue-700 hover:shadow-lg"
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M5 12h14" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 5v14" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                Ya, Simpan Perubahan
+                {t("adminThresholds.confirmYes")}
               </button>
             </div>
           </div>

@@ -6,36 +6,7 @@ import { PublicGoogleSensorMap } from "@/components/maps/PublicGoogleSensorMap";
 import { useWaterLevel } from "@/hooks/useWaterLevel";
 import { cn, formatRelativeTime, formatTimestamp, isSensorOnline } from "@/lib/utils";
 import type { WaterStatus } from "@/types/water-level";
-
-const statusMeta: Record<
-  WaterStatus,
-  {
-    label: string;
-    badgeClass: string;
-    dotClass: string;
-  }
-> = {
-  safe: {
-    label: "Normal",
-    badgeClass: "bg-emerald-100 text-emerald-700",
-    dotClass: "bg-emerald-500",
-  },
-  warning: {
-    label: "Waspada",
-    badgeClass: "bg-yellow-100 text-yellow-700",
-    dotClass: "bg-yellow-500",
-  },
-  alert: {
-    label: "Siaga",
-    badgeClass: "bg-amber-100 text-amber-700",
-    dotClass: "bg-amber-500",
-  },
-  danger: {
-    label: "Bahaya",
-    badgeClass: "bg-rose-100 text-rose-700",
-    dotClass: "bg-rose-500",
-  },
-};
+import { useLanguage } from "@/lib/LanguageContext";
 
 const statusRank: Record<WaterStatus, number> = {
   safe: 0,
@@ -47,6 +18,7 @@ const statusRank: Record<WaterStatus, number> = {
 type StatusFilter = "all" | WaterStatus;
 
 export default function UserMapPage() {
+  const { t, language } = useLanguage();
   const { sensorsSnapshot } = useWaterLevel({ showAll: true });
   const isHydrated = useSyncExternalStore(
     () => () => {},
@@ -56,6 +28,36 @@ export default function UserMapPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedSensorId, setSelectedSensorId] = useState<string>("");
+
+  const statusMeta: Record<
+    WaterStatus,
+    {
+      label: string;
+      badgeClass: string;
+      dotClass: string;
+    }
+  > = useMemo(() => ({
+    safe: {
+      label: t("adminThresholds.levels.normal"),
+      badgeClass: "bg-emerald-100 text-emerald-700",
+      dotClass: "bg-emerald-500",
+    },
+    warning: {
+      label: t("adminThresholds.levels.waspada"),
+      badgeClass: "bg-yellow-100 text-yellow-700",
+      dotClass: "bg-yellow-500",
+    },
+    alert: {
+      label: t("adminThresholds.levels.siaga"),
+      badgeClass: "bg-amber-100 text-amber-700",
+      dotClass: "bg-amber-500",
+    },
+    danger: {
+      label: t("adminThresholds.levels.bahaya"),
+      badgeClass: "bg-rose-100 text-rose-700",
+      dotClass: "bg-rose-500",
+    },
+  }), [t]);
 
   const sensorState = useMemo(
     () =>
@@ -118,8 +120,8 @@ export default function UserMapPage() {
       (a, b) => new Date(b.lastSeenAt ?? b.updatedAt).getTime() - new Date(a.lastSeenAt ?? a.updatedAt).getTime(),
     )[0];
 
-    return formatRelativeTime(latest.lastSeenAt ?? latest.updatedAt);
-  }, [sensorState]);
+    return formatRelativeTime(latest.lastSeenAt ?? latest.updatedAt, undefined, language);
+  }, [sensorState, language]);
 
   const hasNoFilteredResult = filteredSensors.length === 0;
 
@@ -127,9 +129,9 @@ export default function UserMapPage() {
     return (
       <main className="mx-auto w-full max-w-6xl px-6 py-8">
         <section className="rounded-2xl border border-blue-100 bg-linear-to-br from-blue-50 to-white p-5 shadow-sm md:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">User Map Center</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-900">Peta Sensor (Mode User)</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-600">Menyiapkan tampilan peta sensor...</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{t("userMap.tagLabel")}</p>
+          <h1 className="mt-1 text-3xl font-bold text-slate-900">{t("userMap.title")}</h1>
+          <p className="mt-2 max-w-3xl text-sm text-slate-600">{t("userMap.loadingMap")}</p>
         </section>
 
         <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -144,44 +146,44 @@ export default function UserMapPage() {
       <section className="rounded-2xl border border-blue-100 bg-linear-to-br from-blue-50 to-white p-5 shadow-sm md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">User Map Center</p>
-            <h1 className="mt-1 text-3xl font-bold text-slate-900">Peta Sensor (Mode User)</h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">{t("userMap.tagLabel")}</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-900">{t("userMap.title")}</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              Pantau posisi sensor, identifikasi titik paling berisiko, dan fokuskan respons lebih cepat langsung dari peta.
+              {t("userMap.subtitle")}
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                <span className="font-semibold text-slate-800">Fokus:</span>
+                <span className="font-semibold text-slate-800">{t("userMap.focusLabel")}</span>
                 {selectedSensor ? `${selectedSensor.name} (${statusMeta[selectedSensor.status].label})` : "-"}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                Normal: <span className="font-semibold text-slate-800">{normalCount}</span>
+                {t("adminThresholds.levels.normal")}: <span className="font-semibold text-slate-800">{normalCount}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                Waspada: <span className="font-semibold text-slate-800">{alertCount}</span>
+                {t("adminThresholds.levels.siaga")}: <span className="font-semibold text-slate-800">{alertCount}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600">
-                Bahaya: <span className="font-semibold text-slate-800">{dangerCount}</span>
+                {t("adminThresholds.levels.bahaya")}: <span className="font-semibold text-slate-800">{dangerCount}</span>
               </span>
             </div>
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 lg:w-110">
             <Card className="border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">Total Sensor</p>
+              <p className="text-xs text-slate-500">{t("userMap.statsTotal")}</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{sensorsSnapshot.length}</p>
             </Card>
             <Card className="border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">Sensor Berisiko</p>
+              <p className="text-xs text-slate-500">{t("userMap.statsAtRisk")}</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{riskCount}</p>
             </Card>
             <Card className="border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">Konektivitas</p>
+              <p className="text-xs text-slate-500">{t("userMap.statsConnectivity")}</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{onlineCount}/{sensorState.length}</p>
             </Card>
             <Card className="border-slate-200 bg-white p-3">
-              <p className="text-xs text-slate-500">Terakhir Update</p>
+              <p className="text-xs text-slate-500">{t("userMap.statsLastUpdate")}</p>
               <p className="mt-1 text-sm font-bold text-slate-900">{latestUpdate}</p>
             </Card>
           </div>
@@ -191,9 +193,9 @@ export default function UserMapPage() {
       <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Peta Interaktif Sensor</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t("userMap.mapTitle")}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Klik marker di peta atau pilih kartu sensor di bawah untuk melihat fokus titik terpilih.
+              {t("userMap.mapSubtitle")}
             </p>
           </div>
 
@@ -216,7 +218,7 @@ export default function UserMapPage() {
           />
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sensor Terfokus</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("userMap.focusLabelPanel")}</p>
             {selectedSensor ? (
               <>
                 <h3 className="mt-1 text-3xl/9 font-bold text-slate-900">{selectedSensor.name}</h3>
@@ -226,14 +228,14 @@ export default function UserMapPage() {
 
                 <dl className="space-y-2 text-sm text-slate-700">
                   <div className="grid grid-cols-[98px_1fr] items-start gap-2">
-                    <dt className="text-slate-500">Tinggi air</dt>
+                    <dt className="text-slate-500">{t("userMap.panelWaterLevel")}</dt>
                     <dd className="font-semibold text-slate-900">
-                      {selectedSensor.hasWaterLevelData ? `${selectedSensor.lastLevelCm} cm` : "Menunggu Data"}
+                      {selectedSensor.hasWaterLevelData ? `${selectedSensor.lastLevelCm} cm` : t("userMap.waitingData")}
                     </dd>
                   </div>
 
                   <div className="grid grid-cols-[98px_1fr] items-center gap-2">
-                    <dt className="text-slate-500">Status</dt>
+                    <dt className="text-slate-500">{t("userMap.panelStatus")}</dt>
                     <dd>
                       <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-semibold", statusMeta[selectedSensor.status].badgeClass)}>
                         {statusMeta[selectedSensor.status].label}
@@ -242,20 +244,24 @@ export default function UserMapPage() {
                   </div>
 
                   <div className="grid grid-cols-[98px_1fr] items-start gap-2">
-                    <dt className="text-slate-500">Baterai</dt>
+                    <dt className="text-slate-500">{t("userMap.panelBattery")}</dt>
                     <dd className="font-semibold text-slate-900">{selectedSensor.batteryPercent}%</dd>
                   </div>
 
                   <div className="grid grid-cols-[98px_1fr] items-start gap-2">
-                    <dt className="text-slate-500">Konektivitas</dt>
-                    <dd className="font-semibold text-slate-900">{selectedSensor.online ? "Online" : "Offline"}</dd>
+                    <dt className="text-slate-500">{t("userMap.panelConnectivity")}</dt>
+                    <dd className="font-semibold text-slate-900">
+                      {selectedSensor.online ? "Online" : "Offline"}
+                    </dd>
                   </div>
 
                   <div className="grid grid-cols-[98px_1fr] items-start gap-2">
-                    <dt className="text-slate-500">Terakhir Update</dt>
+                    <dt className="text-slate-500">{t("userMap.panelLastUpdate")}</dt>
                     <dd className="font-semibold text-slate-900">
-                      {formatRelativeTime(selectedSensor.lastSeenAt ?? selectedSensor.updatedAt)}
-                      <div className="text-xs text-slate-500">{formatTimestamp(selectedSensor.lastSeenAt ?? selectedSensor.updatedAt)}</div>
+                      {formatRelativeTime(selectedSensor.lastSeenAt ?? selectedSensor.updatedAt, undefined, language)}
+                      <div className="text-xs text-slate-500">
+                        {formatTimestamp(selectedSensor.lastSeenAt ?? selectedSensor.updatedAt, language)}
+                      </div>
                     </dd>
                   </div>
                 </dl>
@@ -266,11 +272,11 @@ export default function UserMapPage() {
                   rel="noreferrer"
                   className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
                 >
-                  Buka Lokasi di Google Maps
+                  {t("userMap.openGoogleMaps")}
                 </a>
               </>
             ) : (
-              <p className="mt-2 text-sm text-slate-600">Tidak ada sensor yang bisa ditampilkan.</p>
+              <p className="mt-2 text-sm text-slate-600">{t("userMap.noSensors")}</p>
             )}
           </div>
         </div>
@@ -279,8 +285,8 @@ export default function UserMapPage() {
       <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Daftar Sensor</h2>
-            <p className="mt-1 text-sm text-slate-600">Gunakan pencarian dan filter status untuk menemukan sensor lebih cepat.</p>
+            <h2 className="text-lg font-semibold text-slate-900">{t("userMap.listTitle")}</h2>
+            <p className="mt-1 text-sm text-slate-600">{t("userMap.listSubtitle")}</p>
           </div>
 
           <div className="flex w-full flex-col gap-2 lg:w-140">
@@ -288,16 +294,16 @@ export default function UserMapPage() {
               type="text"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Cari nama sensor, id, atau sungai..."
-              className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-700 outline-none ring-blue-100 transition focus:border-blue-300 focus:ring-2"
+              placeholder={t("userMap.searchPlaceholder")}
+              className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-700 outline-none bg-white placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition"
             />
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {([
-                { value: "all", label: "Semua" },
-                { value: "safe", label: "Normal" },
-                { value: "alert", label: "Waspada" },
-                { value: "danger", label: "Bahaya" },
+                { value: "all", label: t("userMap.filterAll") },
+                { value: "safe", label: t("userMap.filterNormal") },
+                { value: "alert", label: t("userMap.filterWaspada") },
+                { value: "danger", label: t("userMap.filterBahaya") },
               ] as Array<{ value: StatusFilter; label: string }>).map((item) => (
                 <button
                   key={item.value}
@@ -319,8 +325,8 @@ export default function UserMapPage() {
 
         {hasNoFilteredResult ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-6 text-center">
-            <p className="text-sm font-semibold text-slate-800">Tidak ada sensor yang cocok</p>
-            <p className="mt-1 text-sm text-slate-600">Coba ubah kata pencarian atau reset filter status.</p>
+            <p className="text-sm font-semibold text-slate-800">{t("userMap.emptyResultsTitle")}</p>
+            <p className="mt-1 text-sm text-slate-600">{t("userMap.emptyResultsDesc")}</p>
             <button
               type="button"
               onClick={() => {
@@ -329,7 +335,7 @@ export default function UserMapPage() {
               }}
               className="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
             >
-              Reset Filter
+              {t("userMap.resetBtn")}
             </button>
           </div>
         ) : (
@@ -356,20 +362,26 @@ export default function UserMapPage() {
 
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
                       <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
-                        <p className="text-slate-500">Tinggi air</p>
-                        <p className="mt-0.5 text-sm font-semibold text-slate-800">{sensor.hasWaterLevelData ? `${sensor.lastLevelCm} cm` : "Menunggu Data"}</p>
+                        <p className="text-slate-500">{t("userMap.panelWaterLevel")}</p>
+                        <p className="mt-0.5 text-sm font-semibold text-slate-800">
+                          {sensor.hasWaterLevelData ? `${sensor.lastLevelCm} cm` : t("userMap.waitingData")}
+                        </p>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
-                        <p className="text-slate-500">Baterai</p>
+                        <p className="text-slate-500">{t("userMap.panelBattery")}</p>
                         <p className="mt-0.5 text-sm font-semibold text-slate-800">{sensor.batteryPercent}%</p>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
-                        <p className="text-slate-500">Konektivitas</p>
-                        <p className="mt-0.5 text-sm font-semibold text-slate-800">{sensor.online ? "Online" : "Offline"}</p>
+                        <p className="text-slate-500">{t("userMap.panelConnectivity")}</p>
+                        <p className="mt-0.5 text-sm font-semibold text-slate-800">
+                          {sensor.online ? "Online" : "Offline"}
+                        </p>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
-                        <p className="text-slate-500">Terakhir Update</p>
-                        <p className="mt-0.5 text-sm font-semibold text-slate-800">{formatRelativeTime(sensor.lastSeenAt ?? sensor.updatedAt)}</p>
+                        <p className="text-slate-500">{t("userMap.panelLastUpdate")}</p>
+                        <p className="mt-0.5 text-sm font-semibold text-slate-800">
+                          {formatRelativeTime(sensor.lastSeenAt ?? sensor.updatedAt, undefined, language)}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -381,14 +393,14 @@ export default function UserMapPage() {
                       rel="noreferrer"
                       className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                      Buka Google Maps
+                      {language === "en" ? "Open Google Maps" : "Buka Google Maps"}
                     </a>
                     <button
                       type="button"
                       onClick={() => setSelectedSensorId(sensor.id)}
                       className="inline-flex rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
                     >
-                      Fokuskan di Peta
+                      {t("userMap.focusBtn")}
                     </button>
                   </div>
                 </Card>
