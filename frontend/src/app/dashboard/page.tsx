@@ -1,5 +1,15 @@
+"use client";
+
 import { UserRealtimeDashboard } from "@/components/dashboard/UserRealtimeDashboard";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function DashboardPage() {
-  return <UserRealtimeDashboard headline="Real-Time Water Level Dashboard" subtitle="Pantau perubahan tinggi muka air dan curah hujan untuk setiap titik sensor." />;
+  const { t } = useLanguage();
+
+  return (
+    <UserRealtimeDashboard
+      headline={t("dashboard.title")}
+      subtitle={t("dashboard.subtitle")}
+    />
+  );
 }

@@ -1,11 +1,16 @@
+"use client";
+
 import { UserRealtimeDashboard } from "@/components/dashboard/UserRealtimeDashboard";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function UserDashboardPage() {
+  const { t } = useLanguage();
+
   return (
     <UserRealtimeDashboard
-      roleLabel="User Dashboard"
-      headline="Monitoring Ketinggian Air Real-Time"
-      subtitle="Data diperbarui berkala per sensor untuk membantu kesiapsiagaan banjir."
+      roleLabel={t("nav.dashboard")}
+      headline={t("dashboard.title")}
+      subtitle={t("dashboard.subtitle")}
     />
   );
 }

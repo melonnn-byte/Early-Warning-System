@@ -8,6 +8,7 @@ import type { Sensor } from "@/types/sensor";
 import { cn, formatRelativeTime, formatTimestamp, isSensorOnline } from "@/lib/utils";
 import { useWaterLevel } from "@/hooks/useWaterLevel";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/LanguageContext";
 
 function StatIcon({ children, colorClass }: { children: ReactNode; colorClass: string }) {
   return <span className={`inline-flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-md ${colorClass}`}>{children}</span>;
@@ -22,6 +23,7 @@ export default function AdminDashboardPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activityLogs, setActivityLogs] = useState<Array<{ id: string; time: string; event: string; severity: "info" | "warning" | "critical" }>>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
@@ -47,7 +49,7 @@ export default function AdminDashboardPage() {
         setActivityLogs(
           alertRows.map((item) => ({
             id: item.id,
-            time: new Date(item.sentAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }),
+            time: new Date(item.sentAt).toLocaleTimeString(language === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }),
             event: item.title,
             severity: item.severity === "DANGER" ? "critical" : item.severity === "WARNING" ? "warning" : "info",
           })),
@@ -66,7 +68,7 @@ export default function AdminDashboardPage() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [language]);
 
   const sensorState = useMemo(
     () =>
@@ -83,11 +85,12 @@ export default function AdminDashboardPage() {
   const dangerCount = sensorState.filter((sensor) => sensor.status === "danger").length;
   const maxLevelCm = sensorState.length ? Math.max(...sensorState.map((sensor) => sensor.lastLevelCm)) : 0;
   const avgRainfall = liveBySensor.length ? Math.round((liveBySensor.reduce((sum, sensor) => sum + sensor.rainfallMm, 0) / liveBySensor.length) * 10) / 10 : 0;
-  const globalStatus = sensorState.some((sensor) => sensor.status === "danger")
-    ? "Bahaya"
+  
+  const globalStatusKey = sensorState.some((sensor) => sensor.status === "danger")
+    ? "danger"
     : sensorState.some((sensor) => sensor.status === "alert")
-      ? "Waspada"
-      : "Aman";
+      ? "warning"
+      : "safe";
 
   const severityClass: Record<"info" | "warning" | "critical", string> = {
     info: "bg-blue-100 text-blue-700",
@@ -103,9 +106,9 @@ export default function AdminDashboardPage() {
 
   const stats = [
     {
-      title: "Sensor Aktif",
+      title: t("adminDashboard.stats.activeSensors"),
       value: online,
-      sub: `Total sensor: ${sensorState.length}`,
+      sub: t("adminDashboard.stats.totalCount", { count: sensorState.length }),
       color: "from-blue-500 to-indigo-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -115,9 +118,9 @@ export default function AdminDashboardPage() {
       ),
     },
     {
-      title: "Status Waspada",
+      title: t("adminDashboard.stats.warningSensors"),
       value: warningCount,
-      sub: "Sensor dalam status alert",
+      sub: t("adminDashboard.stats.sensorsInAlert"),
       color: "from-amber-500 to-orange-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -128,9 +131,9 @@ export default function AdminDashboardPage() {
       ),
     },
     {
-      title: "Status Bahaya",
+      title: t("adminDashboard.stats.dangerSensors"),
       value: dangerCount,
-      sub: "Perlu respons segera",
+      sub: t("adminDashboard.stats.needImmediateResponse"),
       color: "from-rose-500 to-pink-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -140,9 +143,9 @@ export default function AdminDashboardPage() {
       ),
     },
     {
-      title: "Curah Hujan",
+      title: t("adminDashboard.stats.rainfall"),
       value: `${avgRainfall} mm/jam`,
-      sub: "Rata-rata sensor aktif",
+      sub: t("adminDashboard.stats.averageActiveSensors"),
       color: "from-cyan-500 to-sky-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -152,9 +155,9 @@ export default function AdminDashboardPage() {
       ),
     },
     {
-      title: "Puncak Tinggi Air",
+      title: t("adminDashboard.stats.waterLevelPeak"),
       value: `${maxLevelCm} cm`,
-      sub: "Pembacaan tertinggi saat ini",
+      sub: t("adminDashboard.stats.highestReading"),
       color: "from-emerald-500 to-teal-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -165,9 +168,9 @@ export default function AdminDashboardPage() {
       ),
     },
     {
-      title: "Sensor Offline",
+      title: t("adminDashboard.stats.offlineSensors"),
       value: offline,
-      sub: "Perlu pengecekan perangkat",
+      sub: t("adminDashboard.stats.needDeviceCheck"),
       color: "from-violet-500 to-purple-500",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7" aria-hidden="true">
@@ -185,24 +188,24 @@ export default function AdminDashboardPage() {
       <Card className="relative overflow-hidden border-blue-500/30 bg-linear-to-r from-blue-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-900/20">
         <div className="absolute -right-2 top-4 h-24 w-24 rounded-3xl border border-white/20 bg-white/10" />
         <div className="relative z-10 space-y-1.5">
-          <h1 className="text-3xl font-bold tracking-tight">Selamat Datang! 👋</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("adminDashboard.welcomeTitle")}</h1>
           <p className="max-w-2xl text-sm text-blue-50/95 md:text-base">
-            Ringkasan cepat kondisi sistem Early Warning System untuk membantu tim merespons perubahan level air lebih sigap.
+            {t("adminDashboard.welcomeSubtitle")}
           </p>
-          <p className="text-xs font-semibold text-blue-100/95 md:text-sm">
-            Status global saat ini:
+          <div className="text-xs font-semibold text-blue-100/95 md:text-sm flex items-center">
+            {t("adminDashboard.globalStatusLabel")}
             <span
               className={`ml-1.5 rounded-full px-2.5 py-1 ${
-                globalStatus === "Bahaya"
+                globalStatusKey === "danger"
                   ? "bg-rose-500/20 text-rose-100"
-                  : globalStatus === "Waspada"
+                  : globalStatusKey === "warning"
                     ? "bg-amber-500/20 text-amber-100"
                     : "bg-emerald-500/20 text-emerald-100"
               }`}
             >
-              {globalStatus}
+              {t(`dashboard.statuses.${globalStatusKey}.label`)}
             </span>
-          </p>
+          </div>
           <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/12 px-3 py-1.5 text-xs font-semibold text-blue-50">
             <CardTitleIcon>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
@@ -210,7 +213,7 @@ export default function AdminDashboardPage() {
                 <path strokeLinecap="round" d="M8 2.8v2.4M16 2.8v2.4M3 9h18" />
               </svg>
             </CardTitleIcon>
-            Periode Pemantauan Aktif
+            {t("adminDashboard.activePeriodLabel")}
           </div>
         </div>
       </Card>
@@ -233,10 +236,10 @@ export default function AdminDashboardPage() {
       <Card className="border-slate-200 bg-white/80 shadow-md shadow-slate-200/40 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Sensor Terkini</h2>
-            <p className="text-sm text-slate-500">Terakhir update, koneksi, dan ketinggian air terbaru.</p>
+            <h2 className="text-lg font-semibold text-slate-900">{t("adminDashboard.latestSensors")}</h2>
+            <p className="text-sm text-slate-500">{t("adminDashboard.latestSensorsDesc")}</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Polling 12 detik</span>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{t("adminDashboard.pollingInterval")}</span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -252,32 +255,32 @@ export default function AdminDashboardPage() {
                     {sensor.online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
                     <span className={cn("relative inline-flex h-3 w-3 rounded-full", sensor.online ? "bg-emerald-500" : "bg-slate-400")} />
                   </span>
-                  {sensor.online ? "Online" : "Offline"}
+                  {sensor.online ? t("dashboard.onlineStatus") : t("dashboard.offlineStatus")}
                 </span>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Tinggi Air</p>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("dashboard.waterLevel")}</p>
                   <p className="mt-0.5 font-bold text-slate-800">{sensor.lastLevelCm.toFixed(1)} cm</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Curah Hujan</p>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("dashboard.rainfall")}</p>
                   <p className="mt-0.5 font-bold text-slate-800">{(sensor.lastRainfall ?? 0).toFixed(1)} mm</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Debit Air</p>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("dashboard.waterFlow")}</p>
                   <p className="mt-0.5 font-bold text-slate-800">{(sensor.lastFlowRate ?? 0).toFixed(1)} LPM</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Baterai</p>
+                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("dashboard.batteryLabel")}</p>
                   <p className="mt-0.5 font-bold text-slate-800">{sensor.batteryPercent}%</p>
                 </div>
               </div>
 
               <div className="mt-3 text-xs text-slate-500">
-                Terakhir Update: <span className="font-semibold text-slate-700">{formatRelativeTime(sensor.lastSeenAt ?? sensor.updatedAt, nowMs)}</span>
-                <div className="mt-1">{formatTimestamp(sensor.lastSeenAt ?? sensor.updatedAt)}</div>
+                {t("dashboard.lastSeenLabel", { time: formatRelativeTime(sensor.lastSeenAt ?? sensor.updatedAt, nowMs, language) })}
+                <div className="mt-1">{formatTimestamp(sensor.lastSeenAt ?? sensor.updatedAt, language)}</div>
               </div>
             </div>
           ))}
@@ -287,11 +290,11 @@ export default function AdminDashboardPage() {
       <Card className="border-slate-200 bg-white/80 shadow-md shadow-slate-200/40 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Peta Interaktif Sensor</h2>
-            <p className="text-sm text-slate-500">Klik titik sensor untuk melihat lokasi, ketinggian air, dan status baterai.</p>
+            <h2 className="text-lg font-semibold text-slate-900">{t("adminDashboard.interactiveMapTitle")}</h2>
+            <p className="text-sm text-slate-500">{t("adminDashboard.interactiveMapDesc")}</p>
           </div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-            Total {sensorState.length} Sensor
+            {t("adminDashboard.totalSensorsCount", { count: sensorState.length })}
           </span>
         </div>
 
@@ -301,11 +304,11 @@ export default function AdminDashboardPage() {
       <Card className="border-slate-200 bg-white/80 shadow-md shadow-slate-200/40 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Log Aktivitas Terkini</h2>
-            <p className="text-sm text-slate-500">Pemantauan kejadian terbaru untuk respons cepat.</p>
+            <h2 className="text-lg font-semibold text-slate-900">{t("adminDashboard.recentActivityLogs")}</h2>
+            <p className="text-sm text-slate-500">{t("adminDashboard.recentActivityLogsDesc")}</p>
           </div>
           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-            Update: {formatTimestamp(new Date().toISOString())}
+            Update: {formatTimestamp(new Date().toISOString(), language)}
           </span>
         </div>
 
@@ -313,9 +316,9 @@ export default function AdminDashboardPage() {
           <table className="w-full min-w-160 text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-slate-500">
-                <th className="py-2">Waktu (HH:MM)</th>
-                <th className="py-2">Kejadian</th>
-                <th className="py-2">Tingkat Keparahan</th>
+                <th className="py-2">{t("adminDashboard.tableTime")}</th>
+                <th className="py-2">{t("adminDashboard.tableEvent")}</th>
+                <th className="py-2">{t("adminDashboard.tableSeverity")}</th>
               </tr>
             </thead>
             <tbody>
@@ -338,12 +341,12 @@ export default function AdminDashboardPage() {
       {(isLoading || error || errorMessage) && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Status Sinkronisasi</p>
-            <p className="text-xs text-slate-500">{isLoading ? "Memuat data sensor terbaru..." : error || errorMessage || "Dashboard sinkron"}</p>
+            <p className="text-sm font-semibold text-slate-700">{t("adminDashboard.syncStatusTitle")}</p>
+            <p className="text-xs text-slate-500">{isLoading ? t("adminDashboard.loadingLatestData") : error || errorMessage || t("adminDashboard.dashboardSynced")}</p>
           </div>
           {(error || errorMessage) && (
             <button type="button" onClick={() => reload()} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-              Coba Lagi
+              {t("adminSensors.retryBtn")}
             </button>
           )}
         </div>
